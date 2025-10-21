@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 14, 2025 at 05:08 PM
+-- Generation Time: Oct 21, 2025 at 05:17 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -18,7 +18,7 @@ SET time_zone = "+00:00";
 /*!40101 SET NAMES utf8mb4 */;
 
 --
--- Database: `project`
+-- Database: `idbproject`
 --
 
 -- --------------------------------------------------------
@@ -33,6 +33,19 @@ CREATE TABLE `classroom` (
   `capacity` int(11) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `classroom`
+--
+
+INSERT INTO `classroom` (`room`, `building`, `capacity`) VALUES
+(12, 'Louve', 50),
+(101, 'Rick', 28),
+(190, 'Performance Center', 120),
+(222, 'Smith', 100),
+(246, 'Carl', 30),
+(344, 'Smith', 45),
+(9999, 'Carl', 99);
+
 -- --------------------------------------------------------
 
 --
@@ -44,8 +57,26 @@ CREATE TABLE `course` (
   `title` varchar(50) NOT NULL,
   `dept_name` varchar(30) DEFAULT NULL,
   `credits` int(2) NOT NULL DEFAULT 0,
-  `prereq` varchar(10) NOT NULL
+  `prereq` varchar(10) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `course`
+--
+
+INSERT INTO `course` (`course_id`, `title`, `dept_name`, `credits`, `prereq`) VALUES
+('ART-121', 'Art 1', 'Art', 3, NULL),
+('BIO-101', 'Intro to Biology', 'Biology', 3, NULL),
+('BIO-111', 'Oceanography', 'Biology', 2, NULL),
+('BIO-311', 'Botany', 'Biology', 3, 'BIO-111'),
+('BIO-401', 'All About Frogs', 'Biology', 4, 'BIO-311'),
+('CS-101', 'Computer Science A', 'Computer Science', 3, NULL),
+('CS-102', 'Computer Science A Lab', 'Computer Science', 3, NULL),
+('CS-333', 'Intro to Databases', 'Computer Science', 3, 'CS-101'),
+('MUS-111', 'Modern Music', 'Music', 2, NULL),
+('PHY-101', 'Intro to Physics', 'Physics', 3, NULL),
+('PHY-108', 'Physics of Pianos', 'Physics', 4, NULL),
+('PHY-421', 'Quantum Physics', 'Physics', 4, 'PHY-101');
 
 -- --------------------------------------------------------
 
@@ -59,6 +90,17 @@ CREATE TABLE `department` (
   `budget` int(11) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `department`
+--
+
+INSERT INTO `department` (`dept_name`, `building`, `budget`) VALUES
+('Art', 'Louve', 650000),
+('Biology', 'Rick', 1250000),
+('Computer Science', 'Carl', 1000000),
+('Music', 'Performance Center', 900000),
+('Physics', 'Smith', 1333000);
+
 -- --------------------------------------------------------
 
 --
@@ -71,6 +113,22 @@ CREATE TABLE `instructor` (
   `salary` int(11) NOT NULL DEFAULT 0,
   `dept_name` varchar(30) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `instructor`
+--
+
+INSERT INTO `instructor` (`ID`, `name`, `salary`, `dept_name`) VALUES
+(10946, 'Emily Davis', 85000, 'Biology'),
+(12125, 'Sarah Adams', 82000, 'Art'),
+(12225, 'John Johnson', 90000, 'Computer Science'),
+(12345, 'John Johnson', 90000, 'Computer Science'),
+(12353, 'Sophia Green', 80000, 'Art'),
+(14837, 'Rick Smith', 100000, 'Music'),
+(15245, 'John Johnson', 90000, 'Computer Science'),
+(17547, 'Mark Lee', 78000, 'Music'),
+(55559, 'James Johnson', 95000, 'Physics'),
+(59282, 'Bob Roberts', 120000, 'Biology');
 
 -- --------------------------------------------------------
 
@@ -89,6 +147,26 @@ CREATE TABLE `section` (
   `teacher` int(5) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `section`
+--
+
+INSERT INTO `section` (`course_id`, `sec_id`, `semester`, `year`, `building`, `room_number`, `time_slot_id`, `teacher`) VALUES
+('BIO-101', 1, 'Fall', 2025, 'Rick', 101, 'E', 59282),
+('BIO-101', 2, 'Spring', 2025, 'Rick', 101, 'F', 10946),
+('BIO-111', 1, 'Fall', 2025, 'Rick', 101, 'C', 59282),
+('BIO-111', 2, 'Spring', 2025, 'Rick', 101, 'D', 15245),
+('CS-101', 1, 'Fall', 2025, 'Carl', 246, 'A', 12345),
+('CS-101', 2, 'Spring', 2025, 'Carl', 9999, 'B', 12225),
+('CS-102', 1, 'Fall', 2025, 'Carl', 246, 'C', 15245),
+('CS-102', 2, 'Spring', 2025, 'Carl', 9999, 'D', 12345),
+('MUS-111', 1, 'Fall', 2025, 'Performance Center', 190, 'I', 14837),
+('MUS-111', 2, 'Spring', 2025, 'Performance Center', 190, 'A', 17547),
+('PHY-101', 1, 'Fall', 2025, 'Smith', 344, 'E', 55559),
+('PHY-101', 2, 'Spring', 2025, 'Smith', 344, 'F', 14837),
+('PHY-108', 1, 'Fall', 2025, 'Smith', 344, 'G', 15245),
+('PHY-108', 2, 'Spring', 2025, 'Smith', 344, 'H', 12125);
+
 -- --------------------------------------------------------
 
 --
@@ -101,6 +179,23 @@ CREATE TABLE `student` (
   `tot_credits` int(3) NOT NULL DEFAULT 0,
   `advisor_id` int(5) DEFAULT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `student`
+--
+
+INSERT INTO `student` (`ID`, `name`, `tot_credits`, `advisor_id`) VALUES
+(10294, 'James', 19, 12353),
+(10592, 'Mort', 119, 10946),
+(11111, 'Carl', 61, 14837),
+(12589, 'Bob', 71, 15245),
+(12629, 'Andy', 89, 59282),
+(12950, 'Billy', 56, 17547),
+(19284, 'Timmy', 10, 12345),
+(19285, 'Tommy', 10, 12345),
+(26092, 'Bort', 1, 12345),
+(46703, 'Sam', 98, 12125),
+(61486, 'Boris', 44, 10946);
 
 -- --------------------------------------------------------
 
@@ -117,6 +212,20 @@ CREATE TABLE `takes` (
   `grade` varchar(2) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
+--
+-- Dumping data for table `takes`
+--
+
+INSERT INTO `takes` (`ID`, `course_id`, `sec_id`, `semester`, `year`, `grade`) VALUES
+(10294, 'PHY-108', 1, 'Fall', 2025, 'C'),
+(10592, 'MUS-111', 1, 'Fall', 2025, 'B'),
+(11111, 'PHY-101', 1, 'Fall', 2025, 'A'),
+(12589, 'CS-102', 1, 'Fall', 2025, 'A'),
+(12950, 'BIO-101', 1, 'Fall', 2025, 'C'),
+(19284, 'CS-101', 1, 'Fall', 2025, 'A'),
+(19285, 'CS-101', 2, 'Spring', 2025, 'B'),
+(46703, 'BIO-111', 1, 'Fall', 2025, 'B');
+
 -- --------------------------------------------------------
 
 --
@@ -131,6 +240,21 @@ CREATE TABLE `time_slot` (
   `end_hr` int(2) NOT NULL,
   `end_min` int(2) NOT NULL
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `time_slot`
+--
+
+INSERT INTO `time_slot` (`time_slot_id`, `day`, `start_hr`, `start_min`, `end_hr`, `end_min`) VALUES
+('A', 'M', 9, 30, 11, 0),
+('B', 'M', 12, 0, 1, 30),
+('C', 'T', 9, 15, 10, 45),
+('D', 'T', 12, 30, 2, 0),
+('E', 'W', 9, 30, 11, 0),
+('F', 'W', 12, 0, 1, 30),
+('G', 'H', 9, 15, 10, 45),
+('H', 'H', 11, 30, 12, 30),
+('I', 'F', 9, 0, 10, 15);
 
 --
 -- Indexes for dumped tables
