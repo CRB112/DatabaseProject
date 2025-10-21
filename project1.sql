@@ -27,6 +27,10 @@ SET time_zone = "+00:00";
 -- Table structure for table `classroom`
 --
 
+CREATE SCHEMA IDBProject;
+
+use IDBProject;
+
 CREATE TABLE `classroom` (
   `room` int(11) NOT NULL,
   `building` varchar(25) NOT NULL,
