@@ -31,6 +31,24 @@ CREATE SCHEMA IDBProject;
 
 use IDBProject;
 
+DROP TABLE IF EXISTS `building`;
+CREATE TABLE `building` (
+  `building` varchar(25) NOT NULL,
+  `dept_name` varchar(30) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `building`
+--
+
+INSERT INTO `building` (`building`, `dept_name`) VALUES
+('Louve', 'Art'),
+('Rick', 'Biology'),
+('Carl', 'Computer Science'),
+('Performance Center', 'Music'),
+('Smith', 'Physics');
+
+DROP TABLE IF EXISTS `classroom`;
 CREATE TABLE `classroom` (
   `room` int(11) NOT NULL,
   `building` varchar(25) NOT NULL,
@@ -55,7 +73,7 @@ INSERT INTO `classroom` (`room`, `building`, `capacity`) VALUES
 --
 -- Table structure for table `course`
 --
-
+DROP TABLE IF EXISTS `course`;
 CREATE TABLE `course` (
   `course_id` varchar(10) NOT NULL,
   `title` varchar(50) NOT NULL,
@@ -87,7 +105,7 @@ INSERT INTO `course` (`course_id`, `title`, `dept_name`, `credits`, `prereq`) VA
 --
 -- Table structure for table `department`
 --
-
+DROP TABLE IF EXISTS `department`;
 CREATE TABLE `department` (
   `dept_name` varchar(30) NOT NULL,
   `building` varchar(25) NOT NULL,
@@ -110,7 +128,7 @@ INSERT INTO `department` (`dept_name`, `building`, `budget`) VALUES
 --
 -- Table structure for table `instructor`
 --
-
+DROP TABLE IF EXISTS `instructor`;
 CREATE TABLE `instructor` (
   `ID` int(5) NOT NULL,
   `name` varchar(25) NOT NULL,
@@ -139,7 +157,7 @@ INSERT INTO `instructor` (`ID`, `name`, `salary`, `dept_name`) VALUES
 --
 -- Table structure for table `section`
 --
-
+DROP TABLE IF EXISTS `section`;
 CREATE TABLE `section` (
   `course_id` varchar(10) NOT NULL,
   `sec_id` int(1) NOT NULL,
@@ -176,7 +194,7 @@ INSERT INTO `section` (`course_id`, `sec_id`, `semester`, `year`, `building`, `r
 --
 -- Table structure for table `student`
 --
-
+DROP TABLE IF EXISTS `student`;
 CREATE TABLE `student` (
   `ID` int(5) NOT NULL,
   `name` varchar(25) NOT NULL,
@@ -206,7 +224,7 @@ INSERT INTO `student` (`ID`, `name`, `tot_credits`, `advisor_id`) VALUES
 --
 -- Table structure for table `takes`
 --
-
+DROP TABLE IF EXISTS `takes`;
 CREATE TABLE `takes` (
   `ID` int(5) NOT NULL,
   `course_id` varchar(10) NOT NULL,
@@ -235,7 +253,7 @@ INSERT INTO `takes` (`ID`, `course_id`, `sec_id`, `semester`, `year`, `grade`) V
 --
 -- Table structure for table `time_slot`
 --
-
+DROP TABLE IF EXISTS `time_slot`;
 CREATE TABLE `time_slot` (
   `time_slot_id` varchar(1) NOT NULL,
   `day` varchar(1) NOT NULL,
@@ -263,6 +281,14 @@ INSERT INTO `time_slot` (`time_slot_id`, `day`, `start_hr`, `start_min`, `end_hr
 --
 -- Indexes for dumped tables
 --
+
+--
+-- Indexes for table `classroom`
+--
+ALTER TABLE `building`
+  ADD PRIMARY KEY (`building`),
+  ADD KEY `buildingdept_deptdept` (`dept_name`),
+  ADD KEY `building` (`building`);
 
 --
 -- Indexes for table `classroom`
@@ -330,10 +356,16 @@ ALTER TABLE `time_slot`
 --
 
 --
+-- Constraints for table `building`
+--
+ALTER TABLE `building`
+  ADD CONSTRAINT `buildingdept_deptdept` FOREIGN KEY (`dept_name`) REFERENCES `department` (`dept_name`) ON DELETE CASCADE ON UPDATE CASCADE;
+
+--
 -- Constraints for table `classroom`
 --
 ALTER TABLE `classroom`
-  ADD CONSTRAINT `build_build` FOREIGN KEY (`building`) REFERENCES `department` (`building`) ON UPDATE CASCADE;
+  ADD CONSTRAINT `b_bb` FOREIGN KEY (`building`) REFERENCES `building` (`building`) ON DELETE CASCADE ON UPDATE CASCADE;
 
 --
 -- Constraints for table `course`
