@@ -21,23 +21,64 @@
                 {% endwith %}
             </div>
 
-            <!-- Login Form -->
-            <div class="card shadow-sm">
+
+            <div class="card shadow-sm my-3">
                 <div class="card-body">
                     <h4 class="card-title mb-4 text-center">Login</h4>
                     <form method="POST" action="/login">
-                        <div class="mb-3">
-                            <label for="loginUser" class="form-label">Username:</label>
-                            <input type="text" class="form-control" name="loginUser" id="loginUser" placeholder="Enter Username" required>
+                        <input type="hidden" name="action"value="LOGIN">
+                        <div class="mb-3 row justify-content-center align-content-center flex-column">
+                            <label for="loginUser" class="text-center form-label">Username:</label>
+                            <input type="text" class="d-flex align-self-center form-control text-center w-75" name="loginUser" id="loginUser" placeholder="Enter Username" required>
                         </div>
-                        <div class="mb-3">
-                            <label for="loginPass" class="form-label">Password:</label>
-                            <input type="password" class="form-control" name="loginPass" id="loginPass" placeholder="Enter Password" required>
+                        <div class="mb-3 row justify-content-center align-content-center">
+                            <label for="loginPass" class="text-center form-label">Password:</label>
+                            <input type="password" class="d-flex align-self-center form-control text-center w-75" name="loginPass" id="loginPass" placeholder="Enter Password" required>
                         </div>
                         <div class="text-center">
-                            <button type="submit" class="btn btn-primary">Submit</button>
+                            <button type="submit" class="btn btn-primary">Log in</button>
                         </div>
                     </form>
+                </div>
+            </div>
+            <div class="card justify-content-center d-flex my-3">
+                <div class=" d-flex flex-column justify-content-center align-content-center">
+                    <h4 class="card-title m-4 text-center">Dont have an account?</h4>
+                    <button class=" mb-3 align-self-center btn btn-primary w-50" data-bs-toggle="modal" data-bs-target="#registerModal">Make One</button>
+                </div>
+            </div>
+        </div>
+
+
+        <div class="modal" id="registerModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header d-flex">
+                        <h5 class="modal-title d-flex text-center">Register Account</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form method="POST" action="/login" id="registerForm">
+                            <input type="hidden" name="action" value="REGISTER">
+                            <div class="mb-3 mx-2 row flex-column">
+                                <label for="registerUser" class="form-label">Username:</label>
+                                <input type="text" class="d-flex  form-control w-75" name="registerUser" id="registerUser" placeholder="Enter Username" required>
+                            </div>
+                            <div class="mb-3 mx-2 row">
+                                <label for="registerPass" class="form-label">Password:</label>
+                                <input type="password" class="d-flex form-control  w-75" name="registerPass" id="registerPass" placeholder="Enter Password" required>
+                            </div>
+                            <div class="mb-3 mx-2 row d-flex  align-items-center">
+                                <div>
+                                    <label for="registerPermission" class="form-label me-2">Instructor?</label>
+                                    <input type="checkbox" class="form-check-input"name="registerPermission" id="registerPermission" value="no">
+                                </div>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="Submit" class="btn btn-primary" form="registerForm">Register</button>
+                    </div>
                 </div>
             </div>
         </div>
