@@ -9,14 +9,13 @@ db = config.db1
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
 
-user = "", 
+user = "", -1
 
 #Zone to add more
 
 
 @app.route('/')
 def returnHome():
-    print(config.SECRET_KEY)
     return render_template('index.html', user=session.get('username'))
 
 @app.route('/login', methods = ['GET', 'POST'])

@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Nov 06, 2025 at 07:19 PM
+-- Generation Time: Nov 06, 2025 at 09:16 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -207,6 +207,10 @@ CREATE TABLE `student` (
 --
 
 INSERT INTO `student` (`ID`, `name`, `tot_credits`, `advisor_id`) VALUES
+(10000, 'Dog', 0, NULL),
+(10001, 'Sp', 0, NULL),
+(10002, 'Test1', 0, NULL),
+(10003, 'DOGS', 0, NULL),
 (10294, 'James', 19, 12353),
 (10592, 'Mort', 119, 10946),
 (11111, 'Carl', 61, 14837),
@@ -296,10 +300,7 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`userID`, `username`, `password`, `permission_level`) VALUES
-(10006, 'Man', 0x00453f743f3f427e673f3f250e3f3f3f, 0),
-(10007, 'balls', 0x00453f743f3f427e673f3f250e3f3f3f, 0),
-(10008, 'boy', 0x1a12eebf964e3f3f183f2e3f3f3f275e, 0),
-(10009, 'stick', 0x0c33f5db9285393fe83a05fe7c0937eb, 0);
+(0, 'admin', 0x66289ee98e9a558df3e0aa4726c78c58, 2);
 
 --
 -- Indexes for dumped tables
