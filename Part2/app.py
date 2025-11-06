@@ -16,12 +16,14 @@ user = "",
 
 @app.route('/')
 def returnHome():
+    print(config.SECRET_KEY)
     return render_template('index.html', user=session.get('username'))
 
 @app.route('/login', methods = ['GET', 'POST'])
 def loginPage():
     global user
-    
+    cursor=db.cursor()
+
     if request.method=='POST':
         if request.form.get('action') == "LOGIN":
             username = request.form.get('loginUser')
@@ -61,9 +63,8 @@ def loginPage():
             sql = "INSERT INTO users(username, password, permission_level, userID) VALUES (%s, AES_ENCRYPT(%s, %s), %s, %s)"
             cursor.execute(sql, (username, password, config.SECRET_KEY, permission, userID,))
 
-            sql = f"INSERT INTO {table}(ID, name, tot_credits) VALUES ({userID}, {username}, 0)"
-            cursor.execute(sql)
-
+            sql = f"INSERT INTO {table} (ID, name, tot_credits) VALUES (%s, %s, 0)"
+            cursor.execute(sql, (userID, username,))
             db.commit()
 
             flash('User successfully created!', 'success')
@@ -80,11 +81,11 @@ def logout():
 @app.route('/dashboard')
 def goToDash():
     if session.get('permission') == 2:
-        return render_template('adminDash.html')
+        return render_template('adminDash.html', user=session.get('username'))
     elif session.get('permission') == 1:
-        return render_template('instructorDash.html')
+        return render_template('instructorDash.html', user=session.get('username'))
     else:
-        return render_template('studentDash.html')
+        return render_template('studentDash.html', user=session.get('username'))
 
 
 
