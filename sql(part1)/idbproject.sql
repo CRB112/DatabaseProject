@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Oct 21, 2025 at 05:17 PM
+-- Generation Time: Nov 06, 2025 at 07:19 PM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -24,14 +24,9 @@ SET time_zone = "+00:00";
 -- --------------------------------------------------------
 
 --
--- Table structure for table `classroom`
+-- Table structure for table `building`
 --
 
-CREATE SCHEMA IDBProject;
-
-use IDBProject;
-
-DROP TABLE IF EXISTS `building`;
 CREATE TABLE `building` (
   `building` varchar(25) NOT NULL,
   `dept_name` varchar(30) NOT NULL
@@ -48,7 +43,12 @@ INSERT INTO `building` (`building`, `dept_name`) VALUES
 ('Performance Center', 'Music'),
 ('Smith', 'Physics');
 
-DROP TABLE IF EXISTS `classroom`;
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `classroom`
+--
+
 CREATE TABLE `classroom` (
   `room` int(11) NOT NULL,
   `building` varchar(25) NOT NULL,
@@ -73,7 +73,7 @@ INSERT INTO `classroom` (`room`, `building`, `capacity`) VALUES
 --
 -- Table structure for table `course`
 --
-DROP TABLE IF EXISTS `course`;
+
 CREATE TABLE `course` (
   `course_id` varchar(10) NOT NULL,
   `title` varchar(50) NOT NULL,
@@ -105,7 +105,7 @@ INSERT INTO `course` (`course_id`, `title`, `dept_name`, `credits`, `prereq`) VA
 --
 -- Table structure for table `department`
 --
-DROP TABLE IF EXISTS `department`;
+
 CREATE TABLE `department` (
   `dept_name` varchar(30) NOT NULL,
   `building` varchar(25) NOT NULL,
@@ -128,7 +128,7 @@ INSERT INTO `department` (`dept_name`, `building`, `budget`) VALUES
 --
 -- Table structure for table `instructor`
 --
-DROP TABLE IF EXISTS `instructor`;
+
 CREATE TABLE `instructor` (
   `ID` int(5) NOT NULL,
   `name` varchar(25) NOT NULL,
@@ -157,7 +157,7 @@ INSERT INTO `instructor` (`ID`, `name`, `salary`, `dept_name`) VALUES
 --
 -- Table structure for table `section`
 --
-DROP TABLE IF EXISTS `section`;
+
 CREATE TABLE `section` (
   `course_id` varchar(10) NOT NULL,
   `sec_id` int(1) NOT NULL,
@@ -194,7 +194,7 @@ INSERT INTO `section` (`course_id`, `sec_id`, `semester`, `year`, `building`, `r
 --
 -- Table structure for table `student`
 --
-DROP TABLE IF EXISTS `student`;
+
 CREATE TABLE `student` (
   `ID` int(5) NOT NULL,
   `name` varchar(25) NOT NULL,
@@ -224,7 +224,7 @@ INSERT INTO `student` (`ID`, `name`, `tot_credits`, `advisor_id`) VALUES
 --
 -- Table structure for table `takes`
 --
-DROP TABLE IF EXISTS `takes`;
+
 CREATE TABLE `takes` (
   `ID` int(5) NOT NULL,
   `course_id` varchar(10) NOT NULL,
@@ -253,7 +253,7 @@ INSERT INTO `takes` (`ID`, `course_id`, `sec_id`, `semester`, `year`, `grade`) V
 --
 -- Table structure for table `time_slot`
 --
-DROP TABLE IF EXISTS `time_slot`;
+
 CREATE TABLE `time_slot` (
   `time_slot_id` varchar(1) NOT NULL,
   `day` varchar(1) NOT NULL,
@@ -278,12 +278,35 @@ INSERT INTO `time_slot` (`time_slot_id`, `day`, `start_hr`, `start_min`, `end_hr
 ('H', 'H', 11, 30, 12, 30),
 ('I', 'F', 9, 0, 10, 15);
 
+-- --------------------------------------------------------
+
+--
+-- Table structure for table `users`
+--
+
+CREATE TABLE `users` (
+  `userID` int(5) NOT NULL,
+  `username` varchar(20) NOT NULL,
+  `password` varbinary(20) NOT NULL,
+  `permission_level` int(1) NOT NULL
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
+
+--
+-- Dumping data for table `users`
+--
+
+INSERT INTO `users` (`userID`, `username`, `password`, `permission_level`) VALUES
+(10006, 'Man', 0x00453f743f3f427e673f3f250e3f3f3f, 0),
+(10007, 'balls', 0x00453f743f3f427e673f3f250e3f3f3f, 0),
+(10008, 'boy', 0x1a12eebf964e3f3f183f2e3f3f3f275e, 0),
+(10009, 'stick', 0x0c33f5db9285393fe83a05fe7c0937eb, 0);
+
 --
 -- Indexes for dumped tables
 --
 
 --
--- Indexes for table `classroom`
+-- Indexes for table `building`
 --
 ALTER TABLE `building`
   ADD PRIMARY KEY (`building`),
@@ -350,6 +373,12 @@ ALTER TABLE `takes`
 ALTER TABLE `time_slot`
   ADD PRIMARY KEY (`time_slot_id`),
   ADD UNIQUE KEY `time_slot_id` (`time_slot_id`);
+
+--
+-- Indexes for table `users`
+--
+ALTER TABLE `users`
+  ADD PRIMARY KEY (`userID`,`username`);
 
 --
 -- Constraints for dumped tables
