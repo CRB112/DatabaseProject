@@ -9,8 +9,6 @@ db = config.db1
 app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
 
-user = "", -1
-
 #Zone to add more
 
 
@@ -32,16 +30,37 @@ def loginPage():
                 flash('Invalid Credentials', 'danger')
                 return redirect(url_for('loginPage'))
 
-            sql = "SELECT username, password, permission_level FROM users where username=%s AND AES_DECRYPT(password, %s) = %s"
+            sql = "SELECT userID, username, password, permission_level FROM users where username=%s AND AES_DECRYPT(password, UNHEX(%s)) = %s"
             cursor.execute(sql, (username, config.SECRET_KEY, password))
             tempUser = cursor.fetchall()
+
+            cursor.close()
+            cursor = db.cursor()
 
             if not tempUser:
                 flash('Login not Found', 'danger')
                 return redirect(url_for('loginPage'))
             
-            session['username'] = tempUser[0][0]
-            session['permission'] = tempUser[0][2]
+            session['ID'] = tempUser[0][0]
+            session['username'] = tempUser[0][1]
+            session['permission'] = tempUser[0][3]
+
+            if session.get('permission') == 1:
+                sql = "SELECT salary, dept_name FROM instructor WHERE ID = %s"
+                cursor.execute(sql, (session.get('ID'),))
+            elif session.get('permission') == 0:
+                sql = "SELECT tot_credits, advisor_id FROM student WHERE ID = %s"
+                cursor.execute(sql, (session.get('ID'),))
+            
+            extraData = cursor.fetchall()
+            if extraData:
+                if session.get('permission') == 1:
+                    session['salary'] = extraData[0][0]
+                    session['dept_name'] = extraData[0][1]
+                else:
+                    session['tot_credits'] = extraData[0][0]
+                    session['advisor_id'] = extraData[0][1]
+
 
             flash('Successfully Logged In', 'success')
 
@@ -58,17 +77,21 @@ def loginPage():
             if cursor.fetchall():
                 flash('User already Exists', 'warning')
                 return redirect(url_for('loginPage'))
-            
-            sql = "INSERT INTO users(username, password, permission_level, userID) VALUES (%s, AES_ENCRYPT(%s, %s), %s, %s)"
+
+            sql = "INSERT INTO users(username, password, permission_level, userID) VALUES (%s, AES_ENCRYPT(%s, UNHEX(%s)), %s, %s)"
             cursor.execute(sql, (username, password, config.SECRET_KEY, permission, userID,))
 
-            sql = f"INSERT INTO {table} (ID, name, tot_credits) VALUES (%s, %s, 0)"
-            cursor.execute(sql, (userID, username,))
+            if (table == 'student'):
+                sql = "INSERT INTO student (ID, name, tot_credits) VALUES (%s, %s, 0)"
+                cursor.execute(sql, (userID, username,))
+            else:
+                sql = "INSERT INTO instructor (ID, name, salary, dept_name) VALUES (%s, %s, 0, NULL)"
+                cursor.execute(sql, (userID, username,))
             db.commit()
 
             flash('User successfully created!', 'success')
 
-    return render_template('login.html', user=user)
+    return render_template('login.html')
 
 @app.route('/logout')
 def logout():
@@ -82,16 +105,20 @@ def goToDash():
     if session.get('permission') == 2:
         return render_template('adminDash.html', user=session.get('username'))
     elif session.get('permission') == 1:
-        return render_template('instructorDash.html', user=session.get('username'))
+        if session.get('salary') == 0:
+            flash('Please input your salary', 'warning')
+        if session.get('dept_name') == None:
+            flash('Please select your department', 'warning')
+        return render_template('instructorDash.html', user=session.get('username'), salary=session.get('salary'), dept_name=session.get('dept_name'))
     else:
-        return render_template('studentDash.html', user=session.get('username'))
+        return render_template('studentDash.html', user=session.get('username'), tot_credits=session.get('tot_credits'), advisor_id=session.get('advisor_id'))
 
 
 
 def getRandomID(table):
     val = 10000
-    sql = f"SELECT name FROM {table} WHERE ID = %s"
-    cursor.execute(sql, (val,))
+    sql = "SELECT name FROM %s WHERE ID = %s"
+    cursor.execute(sql, (table, val,))
     data = cursor.fetchall()
 
     while data:
