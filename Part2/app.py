@@ -51,7 +51,10 @@ def loginPage():
             elif session.get('permission') == 0:
                 sql = "SELECT tot_credits, advisor_id FROM student WHERE ID = %s"
                 cursor.execute(sql, (session.get('ID'),))
-            
+            else:
+                flash('Successfully Logged In', 'success')
+                return redirect(url_for('returnHome'))
+
             extraData = cursor.fetchall()
             if extraData:
                 if session.get('permission') == 1:
