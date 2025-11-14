@@ -112,9 +112,9 @@ def goToDash():
             flash('Please input your salary', 'warning')
         if session.get('dept_name') == None:
             flash('Please select your department', 'warning')
-        return render_template('instructorDash.html', user=session.get('username'), salary=session.get('salary'), dept_name=session.get('dept_name'))
+        return render_template('instructorDash.html', user=session.get('username'), ID = session.get('ID'), salary=session.get('salary'), dept_name=session.get('dept_name'))
     else:
-        return render_template('studentDash.html', user=session.get('username'), tot_credits=session.get('tot_credits'), advisor_id=session.get('advisor_id'))
+        return render_template('studentDash.html', user=session.get('username'), ID = session.get('ID'), tot_credits=session.get('tot_credits'), advisor_id=session.get('advisor_id'))
 
 
 
