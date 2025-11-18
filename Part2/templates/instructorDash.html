@@ -8,6 +8,7 @@
         
         <!--Logout Button-->
         <button class="position-absolute btn btn-outline-secondary" style="top:2%; right:1%" onclick="window.location.href='{{ (url_for('logout')) }}'">Logout</button>
+        <button class="ms-auto btn btn-sm btn-secondary" onclick="window.location.href='{{ url_for('instructorPage',  configuration=1) }}'">See Students</button>
         
         <div class="container mt-5 position-absolute w-25 top-0 start-50 translate-middle-x">
             <!-- Flash Messages -->
@@ -58,7 +59,7 @@
                             </div>
                             <div class="col justify-content-start align-items-center d-flex">
                                 {{ session.get("salary") }}
-                                <button class="ms-auto btn btn-sm btn-secondary" ">Change</button>
+                                <button class="ms-auto btn btn-sm btn-secondary" data-bs-toggle="modal" data-bs-target="#salaryChangeModal">Change</button>
                             </div>
                         </div>
                         <div class="d-flex row  flex-row m-0 flex-grow-1">
@@ -67,11 +68,12 @@
                             </div>
                             <div class="col justify-content-start align-items-center d-flex">
                                 {{ session.get("advisingCount") }}
-                                <button class="ms-auto btn btn-sm btn-secondary">See Students</button>
+                                <button class="ms-auto btn btn-sm btn-secondary" onclick="window.location.href='{{ url_for('instructorPage', configuration=0) }}'">See Students</button>
                             </div>
                         </div>
                     </div>
                 </div>
+                
                 <!--uses configuration variable for display changing-->
                 <div class="d-flex gap-3 h-50 justify-content-center align-items-center flex-column w-100">
                     {% if configuration == 0 %}
@@ -79,8 +81,8 @@
                     <div class="d-flex flex-column jusitfy content-center align-items-center h-100 w-100">
                         <h2 class="fs-3 mt-3 mx-auto align-self-start flex-row d-flex border-bottom mb-3">Advising Options</h2>
                         <div class="d-flex flex-column justify-space-between align-items-center gap-3 w-75">
-                            <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#addStdAdvising">Add Student</button>
-                            <button class="btn btn-primary w-100" data-bs-toggle="modal" data-bs-target="#rmStdAdvising">Remove Student</button>
+                            <button class="btn btn-primary w-50" data-bs-toggle="modal" data-bs-target="#addStdAdvising">Add Student</button>
+                            <button class="btn btn-primary w-50" data-bs-toggle="modal" data-bs-target="#rmStdAdvising">Remove Student</button>
                         </div>
                     </div>
                     
@@ -101,35 +103,67 @@
             
             <div class="col-6 top-0 end-0 h-100 d-flex flex-column justify-content-start align-items-center ">
                 {% if configuration == 0 %}  
-                {% if session.get('tableData') %}
-                <div class="table-responsive">
-                    <table class="table table-striped table-bordered table-hover">
-                        <thead>
-                            <tr>
-                                <th scope="col">ID</th>
-                                <th scope="col">Name</th>
-                                <th scope="col">Total Credits</th>
-                            </tr>
-                        </thead>
-                        <tbody>
-                            {% for s in session.get('tableData') %}
-                            <tr>
-                                <td>{{ s[0] }}</td>
-                                <td>{{ s[1] }}</td>
-                                <td>{{ s[2] }}</td>
-                            </tr>
-                            {% endfor %}
-                        </tbody>
-                    </table>
-                </div>
-                {% else %}
-                    <h4>none found</h4>
+                    {% if session.get('tableData') %}
+                        <div class="table-responsive">
+                            <table class="table table-striped table-bordered table-hover">
+                                <thead>
+                                    <tr>
+                                        <th scope="col">ID</th>
+                                        <th scope="col">Name</th>
+                                        <th scope="col">Total Credits</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for s in session.get('tableData') %}
+                                    <tr>
+                                        <td>{{ s[0] }}</td>
+                                        <td>{{ s[1] }}</td>
+                                        <td>{{ s[2] }}</td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    {% else %}
+                        <h4>none found</h4>
 
-                {% endif %}
+                    {% endif %}
                 {% elif configuration == 1 %}
+                    {% if session.get('tableData') %}
+                    <div class="table-responsive" style="overflow-x:auto; width:80%">
+                        <table class="table table-striped table-bordered table-hover">
+                            <thead>
+                                <tr>
+                                    <th scope="col">Course</th>
+                                    <th scope="col">Semester</th>
+                                    <th scope="col">Year</th>
+                                    <th scope="col">Building</th>
+                                    <th scope="col">Room #</th>
+                                    <th scope="col">Time</th>
+                                    <th scope="col">---</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                {% for s in session.get('tableData') %}
+                                <tr>
+                                    <td>{{ s[0] }}</td>
+                                    <td>{{ s[1] }}</td>
+                                    <td>{{ s[2] }}</td>
+                                    <td>{{ s[3] }}</td>
+                                    <td>{{ s[4] }}</td>
+                                    <td><b>{{ s[5] }}</b> {{ s[6] }}:{{ s[7] }}-{{ s[8] }}:{{ s[9] }}</td>
+                                    <td>...</td>
+                                </tr>
+                                {% endfor %}
+                            </tbody>
+                        </table>
+                    </div>
+                    {% else %}
+                        <h4>none found</h4>
 
+                    {% endif %}
                 {% elif configuration ==2 %}
-
+                    <div>a</div>
                 {% endif %}
             </div>
         </div>

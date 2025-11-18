@@ -112,22 +112,32 @@ def goToDash():
     #Admin
     if session.get('permission') == 2:
         return redirect(url_for('adminPage'))
+    
     #Instructor
     elif session.get('permission') == 1:
-        if session.get('salary') == 0:
-            flash('Please input your salary', 'warning')
-        if session.get('dept_name') == None:
-            flash('Please select your department', 'warning')
         return redirect(url_for('instructorPage'))
+    
     #Student
     else:
         return redirect(url_for('studentPage'))
     
 @app.route('/instructor', methods = ['GET', 'POST'])
 def instructorPage():
-    configuration = 0
+    cfg = int(request.args.get('configuration'))
+    if cfg:
+        if session.get('tableData'):
+            session.pop('tableData')
+        configuration = cfg
+    else:
+        configuration = 0
     cursor = db.cursor()
     
+    #Flashing messages if salary of department name arent valid 
+    if session.get('salary') == 0:
+        flash('Please input your salary', 'warning')
+    if session.get('dept_name') == None:
+        flash('Please select your department', 'warning')
+
     if request.method == 'POST':
         
         #Changing 'configuration'
@@ -152,10 +162,15 @@ def instructorPage():
             cursor.execute(sql, (newSalary, session.get('ID'),))
             db.commit()
 
-    if configuration == 0:
-        sql = "SELECT ID, name, tot_credits FROM student WHERE advisor_id = %s"
-        cursor.execute(sql, (session.get('ID'),))
-        session['tableData'] = cursor.fetchall()
+    if not session.get('tableData'):
+        if configuration == 0:
+            sql = "SELECT ID, name, tot_credits FROM student WHERE advisor_id = %s"
+            cursor.execute(sql, (session.get('ID'),))
+            session['tableData'] = cursor.fetchall()
+        elif configuration == 1:
+            sql = "SELECT course_id, semester, year, building, room_number, day, start_hr, start_min, end_hr, end_min FROM section JOIN time_slot ON section.time_slot_id=time_slot.time_slot_id WHERE teacher=%s"
+            cursor.execute(sql, (session.get('ID'),))
+            session['tableData'] = cursor.fetchall()
 
     cursor.close()
     return render_template('instructorDash.html', randMsg = randMsg, departments=getDepts(), configuration=configuration)
@@ -185,11 +200,9 @@ def instructorAdvising():
             db.commit()
         else:
             flash('Not Advising student', 'warning')
-    else:
-        return redirect(url_for('instructorPage'))
 
     cursor.close()
-    return redirect(url_for('instructorPage'))
+    return redirect(url_for('instructorPage', configuration = 0))
 
 @app.route('/student')
 def studentPage():
