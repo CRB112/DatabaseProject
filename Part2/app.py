@@ -123,11 +123,10 @@ def goToDash():
     
 @app.route('/instructor', methods = ['GET', 'POST'])
 def instructorPage():
-    cfg = int(request.args.get('configuration'))
-    if cfg:
+    if request.args.get('configuration'):
+        configuration = int(request.args.get('configuration'))
         if session.get('tableData'):
             session.pop('tableData')
-        configuration = cfg
     else:
         configuration = 0
     cursor = db.cursor()
@@ -162,6 +161,22 @@ def instructorPage():
             cursor.execute(sql, (newSalary, session.get('ID'),))
             db.commit()
 
+        if request.form.get('action') == 'filter':
+            f = request.form.get('filter')
+            if f != "None":
+                f = f.split(',')
+                print(f[0])
+                sql = "SELECT course_id, semester, year, building, room_number, day, start_hr, start_min, end_hr, end_min FROM section JOIN time_slot ON section.time_slot_id=time_slot.time_slot_id WHERE teacher=%s AND semester=%s AND year=%s"
+                cursor.execute(sql, (session.get('ID'), f[0], f[1]))
+                session['tableData'] = cursor.fetchall()
+                return render_template('instructorDash.html', randMsg = randMsg, departments=getDepts(), configuration=1, getSems=getTaughtSemesters)
+                
+            else:
+                configuration = 1
+                sql = "SELECT course_id, semester, year, building, room_number, day, start_hr, start_min, end_hr, end_min FROM section JOIN time_slot ON section.time_slot_id=time_slot.time_slot_id WHERE teacher=%s"
+                cursor.execute(sql, (session.get('ID'),))
+                session['tableData'] = cursor.fetchall()
+    #If there isnt a table yet
     if not session.get('tableData'):
         if configuration == 0:
             sql = "SELECT ID, name, tot_credits FROM student WHERE advisor_id = %s"
@@ -172,8 +187,9 @@ def instructorPage():
             cursor.execute(sql, (session.get('ID'),))
             session['tableData'] = cursor.fetchall()
 
+
     cursor.close()
-    return render_template('instructorDash.html', randMsg = randMsg, departments=getDepts(), configuration=configuration)
+    return render_template('instructorDash.html', randMsg = randMsg, departments=getDepts(), configuration=configuration, getSems=getTaughtSemesters)
 
 @app.route('/advising', methods=['POST'])
 def instructorAdvising():
@@ -232,8 +248,15 @@ def randMsg():
     return random.choice(msg)
 
 def getDepts():
+    cursor = db.cursor()
     sql = "SELECT dept_name FROM department"
     cursor.execute(sql)
+    return cursor.fetchall()
+
+def getTaughtSemesters():
+    cursor = db.cursor()
+    sql = "SELECT semester, year FROM section WHERE teacher = %s"
+    cursor.execute(sql, (session.get('ID')))
     return cursor.fetchall()
 
 if __name__ == '__main__':
