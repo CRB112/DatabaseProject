@@ -3,7 +3,7 @@
 -- https://www.phpmyadmin.net/
 --
 -- Host: 127.0.0.1
--- Generation Time: Nov 06, 2025 at 09:16 PM
+-- Generation Time: Nov 19, 2025 at 02:52 AM
 -- Server version: 10.4.32-MariaDB
 -- PHP Version: 8.0.30
 
@@ -141,6 +141,7 @@ CREATE TABLE `instructor` (
 --
 
 INSERT INTO `instructor` (`ID`, `name`, `salary`, `dept_name`) VALUES
+(10000, 'Tim', 9999, 'Computer Science'),
 (10946, 'Emily Davis', 85000, 'Biology'),
 (12125, 'Sarah Adams', 82000, 'Art'),
 (12225, 'John Johnson', 90000, 'Computer Science'),
@@ -180,6 +181,8 @@ INSERT INTO `section` (`course_id`, `sec_id`, `semester`, `year`, `building`, `r
 ('BIO-111', 2, 'Spring', 2025, 'Rick', 101, 'D', 15245),
 ('CS-101', 1, 'Fall', 2025, 'Carl', 246, 'A', 12345),
 ('CS-101', 2, 'Spring', 2025, 'Carl', 9999, 'B', 12225),
+('CS-101', 3, 'Fall', 2025, 'Louve', 122, 'C', 10000),
+('CS-102', 1, 'Fall', 2024, 'Rick', 131, 'A', 10000),
 ('CS-102', 1, 'Fall', 2025, 'Carl', 246, 'C', 15245),
 ('CS-102', 2, 'Spring', 2025, 'Carl', 9999, 'D', 12345),
 ('MUS-111', 1, 'Fall', 2025, 'Performance Center', 190, 'I', 14837),
@@ -207,10 +210,11 @@ CREATE TABLE `student` (
 --
 
 INSERT INTO `student` (`ID`, `name`, `tot_credits`, `advisor_id`) VALUES
-(10000, 'Dog', 0, NULL),
+(10000, 'Dog', 0, 10000),
 (10001, 'Sp', 0, NULL),
 (10002, 'Test1', 0, NULL),
 (10003, 'DOGS', 0, NULL),
+(10004, 'BOB', 0, NULL),
 (10294, 'James', 19, 12353),
 (10592, 'Mort', 119, 10946),
 (11111, 'Carl', 61, 14837),
@@ -235,22 +239,23 @@ CREATE TABLE `takes` (
   `sec_id` int(1) NOT NULL,
   `semester` varchar(7) NOT NULL,
   `year` int(4) NOT NULL,
-  `grade` varchar(2) NOT NULL
+  `grade` varchar(2) NOT NULL,
+  `submit` tinyint(1) NOT NULL DEFAULT 0
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4 COLLATE=utf8mb4_general_ci;
 
 --
 -- Dumping data for table `takes`
 --
 
-INSERT INTO `takes` (`ID`, `course_id`, `sec_id`, `semester`, `year`, `grade`) VALUES
-(10294, 'PHY-108', 1, 'Fall', 2025, 'C'),
-(10592, 'MUS-111', 1, 'Fall', 2025, 'B'),
-(11111, 'PHY-101', 1, 'Fall', 2025, 'A'),
-(12589, 'CS-102', 1, 'Fall', 2025, 'A'),
-(12950, 'BIO-101', 1, 'Fall', 2025, 'C'),
-(19284, 'CS-101', 1, 'Fall', 2025, 'A'),
-(19285, 'CS-101', 2, 'Spring', 2025, 'B'),
-(46703, 'BIO-111', 1, 'Fall', 2025, 'B');
+INSERT INTO `takes` (`ID`, `course_id`, `sec_id`, `semester`, `year`, `grade`, `submit`) VALUES
+(10294, 'PHY-108', 1, 'Fall', 2025, 'C', 0),
+(10592, 'MUS-111', 1, 'Fall', 2025, 'B', 0),
+(11111, 'PHY-101', 1, 'Fall', 2025, 'A', 0),
+(12589, 'CS-102', 1, 'Fall', 2025, 'A', 0),
+(12950, 'BIO-101', 1, 'Fall', 2025, 'C', 0),
+(19284, 'CS-101', 1, 'Fall', 2025, 'A', 0),
+(19285, 'CS-101', 2, 'Spring', 2025, 'B', 0),
+(46703, 'BIO-111', 1, 'Fall', 2025, 'B', 0);
 
 -- --------------------------------------------------------
 
@@ -300,7 +305,9 @@ CREATE TABLE `users` (
 --
 
 INSERT INTO `users` (`userID`, `username`, `password`, `permission_level`) VALUES
-(0, 'admin', 0x66289ee98e9a558df3e0aa4726c78c58, 2);
+(0, 'admin', 0x66289ee98e9a558df3e0aa4726c78c58, 2),
+(10000, 'Tim', 0xce71dc5196d6930a62d4e68d0b268ef9, 1),
+(10004, 'BOB', 0xce71dc5196d6930a62d4e68d0b268ef9, 0);
 
 --
 -- Indexes for dumped tables
