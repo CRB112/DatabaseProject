@@ -115,7 +115,7 @@ def goToDash():
     
     #Instructor
     elif session.get('permission') == 1:
-        return redirect(url_for('instructorPage'))
+        return redirect(url_for('instructorPage', configuration = 0))
     
     #Student
     else:
@@ -123,70 +123,114 @@ def goToDash():
     
 @app.route('/instructor', methods = ['GET', 'POST'])
 def instructorPage():
-    if request.args.get('configuration'):
-        configuration = int(request.args.get('configuration'))
-        if session.get('tableData'):
-            session.pop('tableData')
-    else:
-        configuration = 0
+    
     cursor = db.cursor()
     
-    #Flashing messages if salary of department name arent valid 
-    if session.get('salary') == 0:
-        flash('Please input your salary', 'warning')
-    if session.get('dept_name') == None:
-        flash('Please select your department', 'warning')
+    configuration = request.args.get('configuration', 0, type=int)
 
     if request.method == 'POST':
-        
+
+        configuration = int(request.form.get('config'))
+
+
+        if configuration == 0:
+            if session.get('salary') == 0:
+                flash('Please input your salary', 'warning')
+            if session.get('dept_name') == None:
+                flash('Please select your department', 'warning')
+
+        ac = request.form.get('action')
+
         #Changing 'configuration'
-        if request.form.get('action') == 'switchConfig':
+        if ac == 'switchConfig':
             configuration = request.form.get('configVal')
             #If looking for advising
         
 
         #Changing department
-        if request.form.get('action') == 'newDept':
+        if ac == 'newDept':
             newDept = request.form.get('newDept')
             session['dept_name'] = newDept
             sql = "UPDATE instructor SET dept_name = %s WHERE ID = %s"
             cursor.execute(sql, (newDept, session.get('ID'),))
             db.commit()
+            
         
         #Changing salary
-        if request.form.get('action') == 'newSalary':
+        if ac == 'newSalary':
             newSalary = request.form.get('newSalary')
             session['salary'] = newSalary
             sql = "UPDATE instructor SET salary = %s WHERE ID = %s"
             cursor.execute(sql, (newSalary, session.get('ID'),))
             db.commit()
 
-        if request.form.get('action') == 'filter':
+        #Filtering sections
+        if ac == 'filter':
             f = request.form.get('filter')
             if f != "None":
                 f = f.split(',')
                 print(f[0])
-                sql = "SELECT course_id, semester, year, building, room_number, day, start_hr, start_min, end_hr, end_min FROM section JOIN time_slot ON section.time_slot_id=time_slot.time_slot_id WHERE teacher=%s AND semester=%s AND year=%s"
+                sql = "SELECT course_id, semester, year, building, room_number, day, start_hr, start_min, end_hr, end_min, sec_id FROM section JOIN time_slot ON section.time_slot_id=time_slot.time_slot_id WHERE teacher=%s AND semester=%s AND year=%s"
                 cursor.execute(sql, (session.get('ID'), f[0], f[1]))
                 session['tableData'] = cursor.fetchall()
                 return render_template('instructorDash.html', randMsg = randMsg, departments=getDepts(), configuration=1, getSems=getTaughtSemesters)
                 
             else:
                 configuration = 1
-                sql = "SELECT course_id, semester, year, building, room_number, day, start_hr, start_min, end_hr, end_min FROM section JOIN time_slot ON section.time_slot_id=time_slot.time_slot_id WHERE teacher=%s"
+                sql = "SELECT course_id, semester, year, building, room_number, day, start_hr, start_min, end_hr, end_min, sec_id FROM section JOIN time_slot ON section.time_slot_id=time_slot.time_slot_id WHERE teacher=%s"
                 cursor.execute(sql, (session.get('ID'),))
                 session['tableData'] = cursor.fetchall()
-    #If there isnt a table yet
-    if not session.get('tableData'):
+        
+        #Listing Sec
+        if ac == 'listSec':
+            session['course'] = request.form.get('courseID')
+            session['section'] = request.form.get('sectionID')
+
+        #Changing Grade
+        if ac == 'newGrade':
+            ID = request.form.get('studentID')
+            course = request.form.get('courseID')
+            sec = request.form.get('secID')
+            val = convertToGrade(request.form.get('newGrade'))
+            sql = "UPDATE takes SET grade = %s WHERE ID = %s AND course_id = %s AND sec_id = %s"
+            cursor.execute(sql, (val, ID, course, sec,))
+            db.commit()
+
+        #Submitting Grade
+        if ac == 'submitGrade':
+            vals = request.form.get('gradeSubmit').split(',')
+            sql = "UPDATE takes SET submit = 1 WHERE ID = %s AND course_id = %s AND sec_id = %s"
+            cursor.execute(sql, (vals[0],vals[1],vals[2],))
+            db.commit()
+
         if configuration == 0:
             sql = "SELECT ID, name, tot_credits FROM student WHERE advisor_id = %s"
             cursor.execute(sql, (session.get('ID'),))
             session['tableData'] = cursor.fetchall()
         elif configuration == 1:
-            sql = "SELECT course_id, semester, year, building, room_number, day, start_hr, start_min, end_hr, end_min FROM section JOIN time_slot ON section.time_slot_id=time_slot.time_slot_id WHERE teacher=%s"
+            sql = "SELECT course_id, semester, year, building, room_number, day, start_hr, start_min, end_hr, end_min, sec_id FROM section JOIN time_slot ON section.time_slot_id=time_slot.time_slot_id WHERE teacher=%s"
             cursor.execute(sql, (session.get('ID'),))
             session['tableData'] = cursor.fetchall()
+        if configuration == 2:
+            sql = "SELECT student.ID, name, grade, course_id, sec_id, submit FROM takes JOIN student ON student.ID = takes.ID WHERE course_id = %s AND sec_id = %s"
+            cursor.execute(sql, (session.get('course'), session.get('section')))
+            session['tableData'] = cursor.fetchall()
+            print('redo')
+        #END OF POST
 
+    #NOT POST
+    if configuration == 0:
+        sql = "SELECT ID, name, tot_credits FROM student WHERE advisor_id = %s"
+        cursor.execute(sql, (session.get('ID'),))
+        session['tableData'] = cursor.fetchall()
+    elif configuration == 1:
+        sql = "SELECT course_id, semester, year, building, room_number, day, start_hr, start_min, end_hr, end_min, sec_id FROM section JOIN time_slot ON section.time_slot_id=time_slot.time_slot_id WHERE teacher=%s"
+        cursor.execute(sql, (session.get('ID'),))
+        session['tableData'] = cursor.fetchall()
+    if configuration == 2 :
+        sql = "SELECT student.ID, name, grade, course_id, sec_id, submit FROM takes JOIN student ON student.ID = takes.ID WHERE course_id = %s AND sec_id = %s"
+        cursor.execute(sql, (session.get('course'), session.get('section')))
+        session['tableData'] = cursor.fetchall()
 
     cursor.close()
     return render_template('instructorDash.html', randMsg = randMsg, departments=getDepts(), configuration=configuration, getSems=getTaughtSemesters)
@@ -217,8 +261,10 @@ def instructorAdvising():
         else:
             flash('Not Advising student', 'warning')
 
+    session.pop('tableData')
+
     cursor.close()
-    return redirect(url_for('instructorPage', configuration = 0))
+    return redirect(url_for('instructorPage'))
 
 @app.route('/student')
 def studentPage():
@@ -258,6 +304,37 @@ def getTaughtSemesters():
     sql = "SELECT semester, year FROM section WHERE teacher = %s"
     cursor.execute(sql, (session.get('ID')))
     return cursor.fetchall()
+
+def convertToGrade(val):
+    val = int(val)
+    if val < 60:
+        return "F"
+    elif 60 <= val <= 62:
+        return "D-"
+    elif 63 <= val <= 66:
+        return "D"
+    elif 67 <= val <= 69:
+        return "D+"
+    elif 70 <= val <= 72:
+        return "C-"
+    elif 73 <= val <= 76:
+        return "C"
+    elif 77 <= val <= 79:
+        return "C+"
+    elif 80 <= val <= 82:
+        return "B-"
+    elif 83 <= val <= 86:
+        return "B"
+    elif 87 <= val <= 89:
+        return "B+"
+    elif 90 <= val <= 92:
+        return "A-"
+    elif 93 <= val <= 96:
+        return "A"
+    elif 97 <= val <= 100:
+        return "A+"
+    return "F"
+
 
 if __name__ == '__main__':
     cursor=db.cursor()
