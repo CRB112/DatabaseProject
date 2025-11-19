@@ -32,19 +32,8 @@
 
             <!--Column-->
             <div class="col-6 w-50 justify-content-between h-100 align-items-center d-flex flex-column">   
-                <!--Change config Buttons-->
-            <div class="position-absolute justify-between d-flex flex-row gap-3" style="bottom:5%">
-                <form class=" ml-auto form d-flex mb-3" method="POST" action="/instructor">
-                    <input type="hidden" name="config" value="0">
-                        <button class="ms-auto btn btn-sm btn-secondary" type="submit" >Advising</button>
-                </form>
-                <form class=" ml-auto form d-flex mb-3" method="POST" action="/instructor">
-                    <input type="hidden" name="config" value="1">
-                        <button class="ms-auto btn btn-sm btn-secondary" type="submit" >Teaching</button>
-                </form>
-            </div>
-                
-                <div class="d-flex gap-3 h-50 justify-content-center align-items-center flex-column w-100">
+                <!--Top Left Quad-->
+                <div class="d-flex gap-3 justify-content-center align-items-center flex-column w-100" style="height:60%">
                     <h2 class="fs-1 flex-row d-flex border-bottom mb-3">{{ randMsg() }} {{ session.get("username") }}</h2>
                     <div class="d-flex flex-column gap-2" style="width:80%">
                         <div class="d-flex flex-row m-0 row">
@@ -84,10 +73,21 @@
                             </div>
                         </div>
                     </div>
+                    <div class="justify-between d-flex flex-row gap-3">
+                        <form class=" ml-auto form d-flex mb-3" method="POST" action="/instructor">
+                            <input type="hidden" name="config" value="0">
+                                <button class="ms-auto btn btn-sm btn-secondary" type="submit" >Advising</button>
+                        </form>
+                        <form class=" ml-auto form d-flex mb-3" method="POST" action="/instructor">
+                            <input type="hidden" name="config" value="1">
+                                <button class="ms-auto btn btn-sm btn-secondary" type="submit" >Teaching</button>
+                        </form>
+                    </div>
                 </div>
                 
+                <!--Bottom Left Quad-->
                 <!--uses configuration variable for display changing-->
-                <div class="d-flex gap-3 h-50 justify-content-center align-items-center flex-column w-100">
+                <div class="d-flex gap-3 justify-content-center align-items-center flex-column w-100" style="height:40%">
                     {% if configuration == 0 %}
                     <!--Config 0 - List Advising Students-->
                     <div class="d-flex flex-column jusitfy content-center align-items-center h-100 w-100">
