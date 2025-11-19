@@ -210,6 +210,16 @@
                             <tbody>
                                 {% for s in session.get('tableData') %}
                                 <tr style="height:50px">
+                                    {% if s[5] == 0 %}
+                                    <td style="text-align:center; vertical-align: middle;">
+                                        <form class=" form d-flex" method="POST" action="/instructor" style="width:100%;">
+                                            <input type="hidden" name="config" value="2">
+                                            <input type="hidden" name="removeStudent" value="{{s[0]}},{{s[3]}},{{s[4]}}">
+                                            <input type="hidden" name="action" value="removeStudent">
+                                            <button type="submit" class="d-flex btn btn-warning justify-content-center align-items-center" style="width: 100%">Remove</button>
+                                        </form>
+                                    </td>
+                                    {% endif %}
                                     <td style="text-align:center; vertical-align: middle;">{{ s[0] }}</td>
                                     <td style="text-align:center; vertical-align: middle;">{{ s[1] }}</td>
                                     <td style="text-align:center; vertical-align: middle;">{{ s[2] }}</td>
@@ -221,7 +231,7 @@
                                                 <input type="hidden" name="config" value="2">
                                                 <input type="hidden" name="gradeSubmit" value="{{s[0]}},{{s[3]}},{{s[4]}}">
                                                 <input type="hidden" name="action" value="submitGrade">
-                                                <button type="submit" class="d-flex btn btn-primary justify-content-center align-items-center" style="width: 100%">Submit</button>
+                                                <button type="submit" class="d-flex btn btn-success justify-content-center align-items-center" style="width: 100%">Submit</button>
                                             </form>
                                         </div>
                                     </td>

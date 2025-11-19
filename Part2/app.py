@@ -203,6 +203,12 @@ def instructorPage():
             cursor.execute(sql, (vals[0],vals[1],vals[2],))
             db.commit()
 
+        if ac == 'removeStudent':
+            vals = request.form.get('removeStudent').split(',')
+            sql = "DELETE FROM takes WHERE ID = %s AND course_id = %s AND sec_id = %s"
+            cursor.execute(sql, (vals[0],vals[1],vals[2],))
+            db.commit()
+
         if configuration == 0:
             sql = "SELECT ID, name, tot_credits FROM student WHERE advisor_id = %s"
             cursor.execute(sql, (session.get('ID'),))
