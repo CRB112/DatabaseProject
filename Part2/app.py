@@ -2,6 +2,7 @@ from flask import Flask, flash, redirect, render_template, request, jsonify, url
 import config
 import pymysql
 import random
+import atexit
 
 # NOTE THIS DOES NOT CONTAIN THE REQUIRED ENVIRONMENT TO RUN
 # INSTALL FLASK AND PYMYSQL AS REQUIRED BY PROF...
@@ -186,6 +187,7 @@ def instructorPage():
             session['course'] = request.form.get('courseID')
             session['section'] = request.form.get('sectionID')
 
+
         #Changing Grade
         if ac == 'newGrade':
             ID = request.form.get('studentID')
@@ -203,12 +205,38 @@ def instructorPage():
             cursor.execute(sql, (vals[0],vals[1],vals[2],))
             db.commit()
 
+        #Submitting all Grades
+        if ac == 'submitGradeAll':
+            flag = False
+            for row in session.get('tableData'):
+                if row[2] == None:
+                    flag = True
+            if not flag:
+                sql = "UPDATE takes SET submit = 1 WHERE ID = %s AND course_id = %s AND sec_id = %s"
+                cid = session.get('course')
+                sec = session.get('section')
+                for row in session.get('tableData'):
+                    cursor.execute(sql, (row[0], cid, sec,))
+                db.commit()
+
+        #Remove Student From Sec
         if ac == 'removeStudent':
             vals = request.form.get('removeStudent').split(',')
             sql = "DELETE FROM takes WHERE ID = %s AND course_id = %s AND sec_id = %s"
             cursor.execute(sql, (vals[0],vals[1],vals[2],))
             db.commit()
 
+        #Changing Prereq
+        if ac == 'newPrereq':
+            p = request.form.get('newPrereq')
+            if p == "NULL":
+                p = None
+            sql = "UPDATE course SET prereq = %s WHERE course_id = %s"
+            cursor.execute(sql, (p, session.get('course'),))
+            db.commit()
+
+
+        #Grabbing table
         if configuration == 0:
             sql = "SELECT ID, name, tot_credits FROM student WHERE advisor_id = %s"
             cursor.execute(sql, (session.get('ID'),))
@@ -221,7 +249,6 @@ def instructorPage():
             sql = "SELECT student.ID, name, grade, course_id, sec_id, submit FROM takes JOIN student ON student.ID = takes.ID WHERE course_id = %s AND sec_id = %s"
             cursor.execute(sql, (session.get('course'), session.get('section')))
             session['tableData'] = cursor.fetchall()
-            print('redo')
         #END OF POST
 
     #NOT POST
@@ -237,6 +264,9 @@ def instructorPage():
         sql = "SELECT student.ID, name, grade, course_id, sec_id, submit FROM takes JOIN student ON student.ID = takes.ID WHERE course_id = %s AND sec_id = %s"
         cursor.execute(sql, (session.get('course'), session.get('section')))
         session['tableData'] = cursor.fetchall()
+        sql = "SELECT course_id FROM course"
+        cursor.execute(sql)
+        session['allClasses'] = cursor.fetchall()
 
     cursor.close()
     return render_template('instructorDash.html', randMsg = randMsg, departments=getDepts(), configuration=configuration, getSems=getTaughtSemesters)
@@ -340,6 +370,9 @@ def convertToGrade(val):
     elif 97 <= val <= 100:
         return "A+"
     return "F"
+
+
+
 
 
 if __name__ == '__main__':

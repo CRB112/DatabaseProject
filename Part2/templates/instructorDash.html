@@ -8,12 +8,6 @@
         
         <!--Logout Button-->
         <button class="position-absolute btn btn-outline-secondary" style="top:2%; right:1%" onclick="window.location.href='{{ (url_for('logout')) }}'">Logout</button>
-        
-        <form class="form d-flex mb-3 flex-column" method="POST" action="/instructor">
-            <input type="hidden" name="config" value="1">
-                <button class="btn btn-primary" type="submit" >submit</button>
-            </div>
-        </form>
 
         <div class="container mt-5 position-absolute w-25 top-0 start-50 translate-middle-x">
             <!-- Flash Messages -->
@@ -34,8 +28,22 @@
         </div>
 
         <!--Content-->
-        <div class="container text-center h-100 d-flex flex-row p-3">
-            <div class="col-6 w-50 justify-content-between align-items-center flex-grow-1 d-flex flex-column">   
+        <div class="container-fluid text-center d-flex flex-row p-3 h-100" style="position: absolute; top: 0; width: 100%;">
+
+            <!--Column-->
+            <div class="col-6 w-50 justify-content-between h-100 align-items-center d-flex flex-column">   
+                <!--Change config Buttons-->
+            <div class="position-absolute justify-between d-flex flex-row gap-3" style="bottom:5%">
+                <form class=" ml-auto form d-flex mb-3" method="POST" action="/instructor">
+                    <input type="hidden" name="config" value="0">
+                        <button class="ms-auto btn btn-sm btn-secondary" type="submit" >Advising</button>
+                </form>
+                <form class=" ml-auto form d-flex mb-3" method="POST" action="/instructor">
+                    <input type="hidden" name="config" value="1">
+                        <button class="ms-auto btn btn-sm btn-secondary" type="submit" >Teaching</button>
+                </form>
+            </div>
+                
                 <div class="d-flex gap-3 h-50 justify-content-center align-items-center flex-column w-100">
                     <h2 class="fs-1 flex-row d-flex border-bottom mb-3">{{ randMsg() }} {{ session.get("username") }}</h2>
                     <div class="d-flex flex-column gap-2" style="width:80%">
@@ -73,10 +81,6 @@
                             </div>
                             <div class="col gap-2 justify-content-between align-items-center d-flex">
                                 {{ session.get("advisingCount") }}
-                                <form class=" ml-auto form d-flex mb-3" method="POST" action="/instructor">
-                                    <input type="hidden" name="config" value="1">
-                                        <button class="ms-auto btn btn-sm btn-secondary" type="submit" >See Students</button>
-                                </form>
                             </div>
                         </div>
                     </div>
@@ -100,8 +104,18 @@
                         
                     </div>
 
-                    {% elif configuration == 1 %}
-                    <!--Config 1 - Students-->
+                    {% elif configuration == 2 %}
+                    <div class="d-flex flex-column jusitfy content-center align-items-center h-100 w-100">
+                        <h2 class="fs-3 mt-3 mx-auto align-self-start flex-row d-flex border-bottom mb-3">Options For {{ session.get('course') }}</h2>
+                        <div class="d-flex flex-column justify-space-between align-items-center gap-3 w-75">
+                            <form class=" form d-flex w-50" method="POST" action="/instructor">
+                                <input type="hidden" name="config" value="2">
+                                <input type="hidden" name="action" value="submitGradeAll">
+                                <button class="btn btn-primary w-100">Submit All</button>
+                            </form>
+                            <button class="btn btn-primary w-50" data-bs-toggle="modal" data-bs-target="#prereqChangeModal">Change Prereq</button>
+                        </div>
+                    </div>
                     <div>
                         
                     </div>
@@ -109,7 +123,7 @@
                 </div>
             </div>
             
-            <div class="col-6 top-0 end-0 h-100 d-flex flex-column justify-content-start align-items-center ">
+            <div class="col-6 end-0 d-flex flex-column justify-content-start align-items-center " style="margin-top:10%">
                 {% if configuration == 0 %}  
                     {% if session.get('tableData') %}
                         <div class="table-responsive">
@@ -133,9 +147,9 @@
                             </table>
                         </div>
                     {% else %}
-                        <h4>none found</h4>
+                        <h4 class="text-center">none found</h4>
 
-                    {% endif %}
+                {% endif %}
                 {% elif configuration == 1 %}
                     {% if session.get('tableData') %}
                         <form class="form d-flex mb-3 flex-column" method="POST" action="/instructor">
@@ -192,7 +206,9 @@
                         </table>
                     </div>
                     {% else %}
+                    <div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
                         <h4>none found</h4>
+                    </div>
 
                     {% endif %}
                     {% elif configuration == 2 %}
@@ -242,7 +258,9 @@
                         </table>
                     </div>
                     {% else %}
+                    <div class="d-flex justify-content-center align-items-center" style="height: 100vh;">
                         <h4>none found</h4>
+                    </div>
 
                     {% endif %}
                     {% endif %}
@@ -374,6 +392,36 @@
                     </div>
                     <div class="modal-footer">
                         <button type="Submit" class="btn btn-primary" form="GradeForm">Submit</button>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!--Change Prereq-->
+        <div class="modal" id="prereqChangeModal" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header d-flex">
+                        <h5 class="modal-title d-flex text-center">Input new Prereq</h5>
+                        <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+                    </div>
+                    <div class="modal-body">
+                        <form method="POST" action="/instructor" id="prereqForm">
+                            <input type="hidden" name="config" value="2">
+                            <input type="hidden" name="action" value="newPrereq">
+                            <div class="mb-3 mx-2 row flex-column">
+                                <label for="prereqForm" class="text-center form-label"></label>
+                                <select class="form-select" name="newPrereq" id="newPrereq" placeholder="Chose New Prerequisite" required>
+                                    <option value="NULL">None</option>
+                                    {% for c in session.get('allClasses') %}
+                                        <option value="{{c[0]}}">{{c[0]}}</option>
+                                    {% endfor %}
+                                </select>
+                            </div>
+                        </form>
+                    </div>
+                    <div class="modal-footer">
+                        <button type="Submit" class="btn btn-primary" form="prereqForm">Submit</button>
                     </div>
                 </div>
             </div>
