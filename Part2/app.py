@@ -126,13 +126,43 @@ def goToDash():
 def instructorPage():
     
     cursor = db.cursor()
-    
     configuration = request.args.get('configuration', 0, type=int)
+    classSemAvg = session.pop('classSemAvg', None)
+    bestWorst = session.pop('bestWorst', None)
+    session.setdefault('stats', {})
+
+    def get_table_data(configuration):
+        if configuration == 0:
+            sql = "SELECT ID, name, tot_credits FROM student WHERE advisor_id = %s"
+            cursor.execute(sql, (session.get('ID'),))
+            session['tableData'] = cursor.fetchall()
+        elif configuration == 1:
+            sql = "SELECT course_id, semester, year, building, room_number, day, start_hr, start_min, end_hr, end_min, sec_id FROM section JOIN time_slot ON section.time_slot_id=time_slot.time_slot_id WHERE teacher=%s"
+            cursor.execute(sql, (session.get('ID'),))
+            session['tableData'] = cursor.fetchall()
+        elif configuration == 2:
+            sql = "SELECT student.ID, name, grade, course_id, sec_id, submit FROM takes JOIN student ON student.ID = takes.ID WHERE course_id = %s AND sec_id = %s"
+            cursor.execute(sql, (session.get('course'), session.get('section')))
+            session['tableData'] = cursor.fetchall()
+        sql = "SELECT course_id FROM course"
+        cursor.execute(sql)
+        session['allClasses'] = cursor.fetchall()
+
+        cursor.callproc('get_all_semesters_and_years')
+        session['classSems'] = cursor.fetchall()
+        
+        cursor.callproc('get_avg_grade_by_dept_param', [session.get('dept_name')])
+        session['stats']['deptAvg'] = cursor.fetchall()[0][0]
+        
+        cursor.callproc('get_total_students_by_dept', [session.get('dept_name')])
+        session['stats']['deptStudents'] = cursor.fetchall()[0][0]
+
+        cursor.callproc('get_total_current_students_by_dept', [session.get('dept_name')])
+        session['stats']['deptStudentsEnrolled'] = cursor.fetchall()[0][0]
 
     if request.method == 'POST':
 
         configuration = int(request.form.get('config'))
-
 
         if configuration == 0:
             if session.get('salary') == 0:
@@ -170,7 +200,6 @@ def instructorPage():
             f = request.form.get('filter')
             if f != "None":
                 f = f.split(',')
-                print(f[0])
                 sql = "SELECT course_id, semester, year, building, room_number, day, start_hr, start_min, end_hr, end_min, sec_id FROM section JOIN time_slot ON section.time_slot_id=time_slot.time_slot_id WHERE teacher=%s AND semester=%s AND year=%s"
                 cursor.execute(sql, (session.get('ID'), f[0], f[1]))
                 session['tableData'] = cursor.fetchall()
@@ -236,40 +265,9 @@ def instructorPage():
             db.commit()
 
 
-        #Grabbing table
-        if configuration == 0:
-            sql = "SELECT ID, name, tot_credits FROM student WHERE advisor_id = %s"
-            cursor.execute(sql, (session.get('ID'),))
-            session['tableData'] = cursor.fetchall()
-        elif configuration == 1:
-            sql = "SELECT course_id, semester, year, building, room_number, day, start_hr, start_min, end_hr, end_min, sec_id FROM section JOIN time_slot ON section.time_slot_id=time_slot.time_slot_id WHERE teacher=%s"
-            cursor.execute(sql, (session.get('ID'),))
-            session['tableData'] = cursor.fetchall()
-        if configuration == 2:
-            sql = "SELECT student.ID, name, grade, course_id, sec_id, submit FROM takes JOIN student ON student.ID = takes.ID WHERE course_id = %s AND sec_id = %s"
-            cursor.execute(sql, (session.get('course'), session.get('section')))
-            session['tableData'] = cursor.fetchall()
-        #END OF POST
-
-    #NOT POST
-    if configuration == 0:
-        sql = "SELECT ID, name, tot_credits FROM student WHERE advisor_id = %s"
-        cursor.execute(sql, (session.get('ID'),))
-        session['tableData'] = cursor.fetchall()
-    elif configuration == 1:
-        sql = "SELECT course_id, semester, year, building, room_number, day, start_hr, start_min, end_hr, end_min, sec_id FROM section JOIN time_slot ON section.time_slot_id=time_slot.time_slot_id WHERE teacher=%s"
-        cursor.execute(sql, (session.get('ID'),))
-        session['tableData'] = cursor.fetchall()
-    if configuration == 2 :
-        sql = "SELECT student.ID, name, grade, course_id, sec_id, submit FROM takes JOIN student ON student.ID = takes.ID WHERE course_id = %s AND sec_id = %s"
-        cursor.execute(sql, (session.get('course'), session.get('section')))
-        session['tableData'] = cursor.fetchall()
-        sql = "SELECT course_id FROM course"
-        cursor.execute(sql)
-        session['allClasses'] = cursor.fetchall()
-
+    get_table_data(configuration)
     cursor.close()
-    return render_template('instructorDash.html', randMsg = randMsg, departments=getDepts(), configuration=configuration, getSems=getTaughtSemesters)
+    return render_template('instructorDash.html', randMsg = randMsg, departments=getDepts(), configuration=configuration, getSems=getTaughtSemesters, classSemAvg = classSemAvg, bestWorst=bestWorst)
 
 @app.route('/advising', methods=['POST'])
 def instructorAdvising():
@@ -301,6 +299,57 @@ def instructorAdvising():
 
     cursor.close()
     return redirect(url_for('instructorPage'))
+
+@app.route('/avgGradeRange', methods=['POST'])
+def avg():
+    cursor = db.cursor()
+
+    min_sem, min_year = request.form.get('minSem').split(',')
+    max_sem, max_year = request.form.get('maxSem').split(',')
+    c = request.form.get('courseChoose')
+
+    if int(max_year) < int(min_year):
+        flash('Invalid Parameters', 'warning')
+        cursor.close()
+        return redirect(url_for('instructorPage'))
+
+    sql = "CALL get_avg_grade_for_class_across_semesters(%s, %s, %s, %s, %s)"
+    cursor.execute(sql, (c, min_sem, int(min_year), max_sem, int(max_year)))
+    avg = cursor.fetchall()
+    cursor.close()
+
+    if not avg or avg[0][0] is None:
+        flash('Classes Do not Exist in Range', 'warning')
+        return redirect(url_for('instructorPage'))
+
+    session['classSemAvg'] = (
+        c,
+        (min_sem, min_year),
+        (max_sem, max_year),
+        float(avg[0][0])
+    )
+    return redirect(url_for('instructorPage', configuration = 1))
+
+@app.route('/bestWorstClass', methods=['POST'])
+def bestWorst():
+    cursor = db.cursor()
+
+    # Get the selected semester and year from the form input
+    sem = request.form.get('bestWorst').split(',')
+
+    # Call the stored procedure with the semester and year
+    cursor.callproc('get_best_and_worst_classes', [sem[0], int(sem[1])])
+
+    res = cursor.fetchall()
+
+    session['bestWorst'] = (
+        (res[0][0], res[0][1]),
+        (res[0][2], float(res[0][3])),
+        (res[0][4], float(res[0][5]))
+    )
+
+    return redirect(url_for('instructorPage', configuration = 1))
+
 
 @app.route('/student')
 def studentPage():
