@@ -1,48 +1,193 @@
 <!DOCTYPE html>
 <html data-bs-theme="dark">
-    <head>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-        <link href="../static/customcss.css" rel="stylesheet">
-    </head>
-    <body>
-        <div class="container mt-5 position-absolute w-25 top-0 start-50 translate-middle-x">
-            <!-- Flash Messages -->
-            <div class="alert-container">
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        <div class="alert-container">
-                            {% for category, message in messages %}
-                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                                    {{ message }}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
-                                </div>
-                            {% endfor %}
+<head>
+    <title>Student Dashboard</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="../static/css/customcss.css" rel="stylesheet">
+</head>
+<body class="bg-dark text-light">
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-secondary mb-4">
+        <div class="container-fluid">
+            <a class="navbar-brand" href="#">Student Portal</a>
+            <div class="d-flex">
+                <span class="navbar-text me-3">Logged in as: <strong>{{ session.get('username') }}</strong></span>
+                <a href="{{ url_for('logout') }}" class="btn btn-outline-light btn-sm">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+
+        <ul class="nav nav-tabs mb-3" id="studentTabs" role="tablist">
+            <li class="nav-item" role="presentation">
+                <button class="nav-link active" id="classes-tab" data-bs-toggle="tab" data-bs-target="#classes" type="button">My Classes & Grades</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="register-tab" data-bs-toggle="tab" data-bs-target="#register" type="button">Register for Courses</button>
+            </li>
+            <li class="nav-item" role="presentation">
+                <button class="nav-link" id="profile-tab" data-bs-toggle="tab" data-bs-target="#profile" type="button">Profile & Advisor</button>
+            </li>
+        </ul>
+
+        <div class="tab-content" id="studentTabsContent">
+            
+            <div class="tab-pane fade show active" id="classes" role="tabpanel">
+                <div class="card bg-secondary text-white">
+                    <div class="card-header">Current Schedule & Grades</div>
+                    <div class="card-body">
+                        {% if my_classes %}
+                        <div class="table-responsive">
+                            <table class="table table-dark table-hover">
+                                <thead>
+                                    <tr>
+                                        <th>Course</th>
+                                        <th>Sec</th>
+                                        <th>Term</th>
+                                        <th>Time/Location</th>
+                                        <th>Grade</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for c in my_classes %}
+                                    <tr>
+                                        <td>{{ c[0] }}</td>
+                                        <td>{{ c[1] }}</td>
+                                        <td>{{ c[2] }} {{ c[3] }}</td>
+                                        <td>
+                                            {% if c[5] %}{{ c[5] }} {{ c[6] }}<br>{% endif %}
+                                            {% if c[7] %}{{ c[7] }} {{ c[8] }}:{{ "%02d"|format(c[9]) }} - {{ c[10] }}:{{ "%02d"|format(c[11]) }}{% endif %}
+                                        </td>
+                                        <td>
+                                            {% if c[4] %}
+                                                <span class="badge bg-success">{{ c[4] }}</span>
+                                            {% else %}
+                                                <span class="badge bg-warning text-dark">In Progress</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            {% if not c[4] %}
+                                            <form method="POST" action="/student" onsubmit="return confirm('Are you sure you want to drop this class?');">
+                                                <input type="hidden" name="action" value="dropCourse">
+                                                <input type="hidden" name="course_id" value="{{ c[0] }}">
+                                                <input type="hidden" name="sec_id" value="{{ c[1] }}">
+                                                <input type="hidden" name="semester" value="{{ c[2] }}">
+                                                <input type="hidden" name="year" value="{{ c[3] }}">
+                                                <button class="btn btn-danger btn-sm">Drop</button>
+                                            </form>
+                                            {% endif %}
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
                         </div>
-                    {% endif %}
-                {% endwith %}
+                        {% else %}
+                            <p class="text-center">You are not enrolled in any classes.</p>
+                        {% endif %}
+                    </div>
+                </div>
             </div>
+
+            <div class="tab-pane fade" id="register" role="tabpanel">
+                <div class="card bg-secondary text-white">
+                    <div class="card-header">Available Courses</div>
+                    <div class="card-body">
+                        <div class="table-responsive" style="max-height: 500px; overflow-y: auto;">
+                            <table class="table table-dark table-striped">
+                                <thead>
+                                    <tr>
+                                        <th>Course ID</th>
+                                        <th>Title</th>
+                                        <th>Semester</th>
+                                        <th>Instructor</th>
+                                        <th>Location</th>
+                                        <th>Register</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for s in available_sections %}
+                                    <tr>
+                                        <td>{{ s[0] }}-{{ s[1] }}</td>
+                                        <td>{{ s[4] }}</td>
+                                        <td>{{ s[2] }} {{ s[3] }}</td>
+                                        <td>{{ s[7] }}</td>
+                                        <td>{{ s[5] }} {{ s[6] }}</td>
+                                        <td>
+                                            <form method="POST" action="/student">
+                                                <input type="hidden" name="action" value="registerCourse">
+                                                <input type="hidden" name="course_id" value="{{ s[0] }}">
+                                                <input type="hidden" name="sec_id" value="{{ s[1] }}">
+                                                <input type="hidden" name="semester" value="{{ s[2] }}">
+                                                <input type="hidden" name="year" value="{{ s[3] }}">
+                                                <button class="btn btn-primary btn-sm">Add Class</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="tab-pane fade" id="profile" role="tabpanel">
+                <div class="row">
+                    <div class="col-md-6">
+                        <div class="card bg-secondary mb-3">
+                            <div class="card-header">My Information</div>
+                            <div class="card-body">
+                                <form method="POST" action="/student">
+                                    <input type="hidden" name="action" value="updateInfo">
+                                    <div class="mb-3">
+                                        <label>Student ID (Cannot Change)</label>
+                                        <input type="text" class="form-control" value="{{ session.get('ID') }}" disabled>
+                                    </div>
+                                    <div class="mb-3">
+                                        <label>Full Name</label>
+                                        <input type="text" name="name" class="form-control" value="{{ profile[0] }}">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label>Total Credits</label>
+                                        <input type="text" class="form-control" value="{{ profile[1] }}" disabled>
+                                    </div>
+                                    <button class="btn btn-warning">Update Info</button>
+                                </form>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-6">
+                        <div class="card bg-info text-dark mb-3">
+                            <div class="card-header">Advisor Information</div>
+                            <div class="card-body">
+                                {% if profile[2] %}
+                                    <h5>{{ profile[2] }}</h5>
+                                    <p>Department: {{ profile[3] }}</p>
+                                    <button class="btn btn-outline-dark btn-sm">Contact Advisor</button>
+                                {% else %}
+                                    <p>You have not been assigned an advisor yet.</p>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
         </div>
-
-        <!--content-->
-        <div class="container text-center vh-100">
-            <div class="row h-50">
-                <div class="col w-50 justify-content-center align-items-center d-flex">
-                    <h2 class="fs-1">Hello {{user}}</h2>
-                </div>
-                <div class="col w-50 d-flex">
-                    content
-                </div>
-            </div>
-            <div class="row h-50">
-                <div class="col w-50 d-flex">
-                    content
-                </div>
-                <div class="col w-50 d-flex">
-                    content
-                </div>
-            </div>
-
-        </div>
-
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-    </body>
+    </div>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.0/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
