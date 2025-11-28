@@ -13,6 +13,7 @@ app.secret_key = config.SECRET_KEY
 
 #Zone to add more
 
+
 @app.route('/')
 def returnHome():
     return render_template('index.html', user=session.get('username'))
@@ -349,178 +350,15 @@ def bestWorst():
 
     return redirect(url_for('instructorPage', configuration = 1))
 
-# --- STUDENT DASHBOARD LOGIC ---
-@app.route('/student', methods=['GET', 'POST'])
+
+@app.route('/student')
 def studentPage():
-    # Only allow Students (permission 0)
-    if session.get('permission') != 0:
-        return redirect(url_for('returnHome'))
-        
-    cursor = db.cursor()
-    
-    # 1. HANDLE POST ACTIONS
-    if request.method == 'POST':
-        action = request.form.get('action')
-        
-        # Update Profile
-        if action == "updateInfo":
-            new_name = request.form.get('name')
-            if new_name:
-                sql = "UPDATE student SET name = %s WHERE ID = %s"
-                cursor.execute(sql, (new_name, session.get('ID')))
-                db.commit()
-                # Update session username to reflect change immediately
-                session['username'] = new_name 
-                flash("Personal information updated.", "success")
-                
-        # Drop Course
-        elif action == "dropCourse":
-            course_id = request.form.get('course_id')
-            sec_id = request.form.get('sec_id')
-            semester = request.form.get('semester')
-            year = request.form.get('year')
-            
-            sql = "DELETE FROM takes WHERE ID=%s AND course_id=%s AND sec_id=%s AND semester=%s AND year=%s"
-            cursor.execute(sql, (session.get('ID'), course_id, sec_id, semester, year))
-            db.commit()
-            flash(f"Dropped {course_id}", "info")
-            
-        # Register for Course
-        elif action == "registerCourse":
-            course_id = request.form.get('course_id')
-            sec_id = request.form.get('sec_id')
-            semester = request.form.get('semester')
-            year = request.form.get('year')
-            
-            # Check if already enrolled to prevent duplicates
-            check_sql = "SELECT * FROM takes WHERE ID=%s AND course_id=%s AND sec_id=%s AND semester=%s AND year=%s"
-            cursor.execute(check_sql, (session.get('ID'), course_id, sec_id, semester, year))
-            if cursor.fetchone():
-                flash("You are already enrolled in this section.", "warning")
-            else:
-                # Insert new record
-                sql = "INSERT INTO takes (ID, course_id, sec_id, semester, year, grade) VALUES (%s, %s, %s, %s, %s, NULL)"
-                cursor.execute(sql, (session.get('ID'), course_id, sec_id, semester, year))
-                db.commit()
-                flash(f"Successfully registered for {course_id}", "success")
+    return render_template('studentDash.html')
 
-    # 2. FETCH DATA FOR DASHBOARD
-    
-    # A. Student Info & Advisor Info
-    sql_profile = """
-        SELECT s.name, s.tot_credits, i.name as advisor_name, i.dept_name as advisor_dept 
-        FROM student s 
-        LEFT JOIN instructor i ON s.advisor_id = i.ID 
-        WHERE s.ID = %s
-    """
-    cursor.execute(sql_profile, (session.get('ID'),))
-    profile_data = cursor.fetchone()
-    
-    # B. Enrolled Classes (Grades & Schedule)
-    # Joins 'takes' -> 'section' -> 'time_slot'
-    sql_takes = """
-        SELECT t.course_id, t.sec_id, t.semester, t.year, t.grade, 
-               s.building, s.room_number, ts.day, ts.start_hr, ts.start_min, ts.end_hr, ts.end_min
-        FROM takes t
-        JOIN section s ON t.course_id=s.course_id AND t.sec_id=s.sec_id AND t.semester=s.semester AND t.year=s.year
-        LEFT JOIN time_slot ts ON s.time_slot_id = ts.time_slot_id
-        WHERE t.ID = %s
-        ORDER BY t.year DESC, t.semester DESC
-    """
-    cursor.execute(sql_takes, (session.get('ID'),))
-    my_classes = cursor.fetchall()
-    
-    # C. Available Sections for Registration 
-    # Fetches all sections for current/future years (hardcoded >= 2025 based on dataset)
-    sql_sections = """
-        SELECT s.course_id, s.sec_id, s.semester, s.year, c.title, s.building, s.room_number, i.name
-        FROM section s
-        JOIN course c ON s.course_id = c.course_id
-        LEFT JOIN instructor i ON s.teacher = i.ID
-        WHERE s.year >= 2025 
-        ORDER BY s.course_id
-    """
-    cursor.execute(sql_sections)
-    available_sections = cursor.fetchall()
-    
-    cursor.close()
-    
-    return render_template('studentDash.html', profile=profile_data, my_classes=my_classes, available_sections=available_sections)
-
-
-# --- ADMIN DASHBOARD LOGIC ---
-@app.route('/admin', methods=['GET', 'POST'])
+@app.route('/admin')
 def adminPage():
-    # Only allow Admin (permission 2)
-    if session.get('permission') != 2:
-        return redirect(url_for('returnHome'))
-        
-    cursor = db.cursor()
-    active_tab = request.args.get('tab', 'students') # Default tab
-    
-    # 1. HANDLE POST ACTIONS
-    
-    # Generic Delete
-    if request.method == 'POST' and request.form.get('action') == 'delete':
-        table = request.form.get('table')
-        pk_col = request.form.get('pk_col')
-        pk_val = request.form.get('pk_val')
-        
-        # Security check: whitelist tables to prevent SQL injection or accidents
-        if table in ['student', 'instructor', 'course', 'section', 'department', 'classroom']:
-            try:
-                # If deleting a person, also delete their login from 'users' table
-                if table in ['student', 'instructor']:
-                    cursor.execute("DELETE FROM users WHERE userID = %s", (pk_val,))
-                
-                # Delete the entity
-                sql = f"DELETE FROM {table} WHERE {pk_col} = %s"
-                cursor.execute(sql, (pk_val,))
-                db.commit()
-                flash(f"Deleted from {table}", "success")
-            except Exception as e:
-                flash(f"Error deleting: {e}", "danger")
-    
-    # Specific Add: Course
-    if request.method == 'POST' and request.form.get('action') == 'add_course':
-        try:
-            sql = "INSERT INTO course (course_id, title, dept_name, credits) VALUES (%s, %s, %s, %s)"
-            cursor.execute(sql, (request.form['course_id'], request.form['title'], request.form['dept_name'], request.form['credits']))
-            db.commit()
-            flash("Course Added", "success")
-        except Exception as e:
-            flash(f"Error: {e}", "danger")
+    return render_template('adminDash.html')
 
-    # 2. FETCH DATA FOR ACTIVE TAB
-    data = []
-    headers = []
-    
-    if active_tab == 'students':
-        cursor.execute("SELECT ID, name, tot_credits, advisor_id FROM student")
-        headers = ['ID', 'Name', 'Credits', 'Advisor ID']
-        data = cursor.fetchall()
-        
-    elif active_tab == 'instructors':
-        cursor.execute("SELECT ID, name, dept_name, salary FROM instructor")
-        headers = ['ID', 'Name', 'Department', 'Salary']
-        data = cursor.fetchall()
-        
-    elif active_tab == 'courses':
-        cursor.execute("SELECT course_id, title, dept_name, credits FROM course")
-        headers = ['ID', 'Title', 'Department', 'Credits']
-        data = cursor.fetchall()
-        
-    elif active_tab == 'departments':
-        cursor.execute("SELECT dept_name, building, budget FROM department")
-        headers = ['Name', 'Building', 'Budget']
-        data = cursor.fetchall()
-
-    # Get extra data for dropdowns (like Departments list for modals)
-    cursor.execute("SELECT dept_name FROM department")
-    departments = cursor.fetchall()
-        
-    cursor.close()
-    return render_template('adminDash.html', active_tab=active_tab, headers=headers, data=data, departments=departments)
 
 
 def getRandomID(table):
@@ -581,6 +419,9 @@ def convertToGrade(val):
     elif 97 <= val <= 100:
         return "A+"
     return "F"
+
+
+
 
 
 if __name__ == '__main__':
