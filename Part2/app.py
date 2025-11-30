@@ -12,7 +12,7 @@ app = Flask(__name__)
 app.secret_key = config.SECRET_KEY
 
 # -------------------------------------------------------------------------
-#                               CORE ROUTES
+# For Home, Login, Logout, and Dashboard Redirection
 # -------------------------------------------------------------------------
 
 @app.route('/')
