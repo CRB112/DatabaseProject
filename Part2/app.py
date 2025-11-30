@@ -420,7 +420,210 @@ def convertToGrade(val):
         return "A+"
     return "F"
 
+# Added Portion for Student and Admin Dashboards
 
+@app.route('/student', methods=['GET', 'POST'])
+def studentPage():
+    if session.get('permission') != 0:
+        return redirect(url_for('returnHome'))
+
+    cursor = db.cursor()
+    configuration = request.args.get('configuration', 0, type=int) # 0=My Classes, 1=Registration, 2=Profile
+    session.setdefault('studentData', {})
+
+    # Helper to refresh data
+    def refresh_student_data():
+        # 1. Get Enrolled Classes (for Grade checking and Dropping)
+        sql = """
+            SELECT t.course_id, t.sec_id, t.semester, t.year, t.grade, 
+                   s.day, s.start_hr, s.start_min, s.end_hr, s.end_min, c.credits, i.name, s.room_number, s.building
+            FROM takes t
+            JOIN section s ON t.course_id = s.course_id AND t.sec_id = s.sec_id AND t.semester = s.semester AND t.year = s.year
+            JOIN course c ON t.course_id = c.course_id
+            JOIN instructor i ON s.teacher = i.ID
+            JOIN time_slot ts ON s.time_slot_id = ts.time_slot_id
+            WHERE t.ID = %s
+        """
+        cursor.execute(sql, (session.get('ID'),))
+        session['enrolledClasses'] = cursor.fetchall()
+
+        # 2. Get Available Sections (for Registration)
+        # We filter out classes the student is already taking
+        sql = """
+            SELECT s.course_id, s.sec_id, s.semester, s.year, c.title, i.name, 
+                   ts.day, ts.start_hr, ts.start_min, ts.end_hr, ts.end_min
+            FROM section s
+            JOIN course c ON s.course_id = c.course_id
+            JOIN instructor i ON s.teacher = i.ID
+            JOIN time_slot ts ON s.time_slot_id = ts.time_slot_id
+            WHERE (s.course_id, s.sec_id, s.semester, s.year) NOT IN (
+                SELECT course_id, sec_id, semester, year FROM takes WHERE ID = %s
+            )
+        """
+        cursor.execute(sql, (session.get('ID'),))
+        session['availableSections'] = cursor.fetchall()
+
+        # 3. Get Advisor Info
+        sql = "SELECT i.name, i.dept_name, i.ID FROM student s JOIN instructor i ON s.advisor_id = i.ID WHERE s.ID = %s"
+        cursor.execute(sql, (session.get('ID'),))
+        session['advisorInfo'] = cursor.fetchone()
+
+        # 4. Get Student Personal Info
+        sql = "SELECT name, tot_credits FROM student WHERE ID = %s"
+        cursor.execute(sql, (session.get('ID'),))
+        session['personalInfo'] = cursor.fetchone()
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        configuration = int(request.form.get('config'))
+
+        if action == 'register':
+            cid = request.form.get('courseID')
+            sid = request.form.get('secID')
+            sem = request.form.get('semester')
+            yr = request.form.get('year')
+            
+            # Logic: Register
+            try:
+                sql = "INSERT INTO takes (ID, course_id, sec_id, semester, year, grade, submit) VALUES (%s, %s, %s, %s, %s, '', 0)"
+                cursor.execute(sql, (session.get('ID'), cid, sid, sem, yr))
+                db.commit()
+                flash(f'Successfully registered for {cid}', 'success')
+            except Exception as e:
+                flash(f'Error registering: {e}', 'danger')
+
+        elif action == 'drop':
+            cid = request.form.get('courseID')
+            sid = request.form.get('secID')
+            sem = request.form.get('semester')
+            yr = request.form.get('year')
+            
+            try:
+                sql = "DELETE FROM takes WHERE ID=%s AND course_id=%s AND sec_id=%s AND semester=%s AND year=%s"
+                cursor.execute(sql, (session.get('ID'), cid, sid, sem, yr))
+                db.commit()
+                flash(f'Dropped {cid}', 'warning')
+            except Exception as e:
+                flash('Error dropping class', 'danger')
+
+        elif action == 'updateProfile':
+            newName = request.form.get('newName')
+            sql = "UPDATE student SET name = %s WHERE ID = %s"
+            cursor.execute(sql, (newName, session.get('ID')))
+            # Also update users table for consistency if needed, but usually users table is for login
+            db.commit()
+            flash('Profile Updated', 'success')
+
+    refresh_student_data()
+    cursor.close()
+    return render_template('studentDash.html', configuration=configuration)
+
+@app.route('/admin', methods=['GET', 'POST'])
+def adminPage():
+    if session.get('permission') != 2:
+        return redirect(url_for('returnHome'))
+
+    cursor = db.cursor()
+    configuration = request.args.get('configuration', 0, type=int) 
+    # Configs: 0=Course, 1=Section, 2=Instructor, 3=Student, 4=Dept, 5=Classroom, 6=TimeSlot
+
+    def refresh_admin_data(config):
+        session['adminData'] = []
+        if config == 0: # Course
+            cursor.execute("SELECT * FROM course")
+        elif config == 1: # Section
+            cursor.execute("SELECT * FROM section")
+        elif config == 2: # Instructor
+            cursor.execute("SELECT * FROM instructor")
+        elif config == 3: # Student
+            cursor.execute("SELECT * FROM student")
+        elif config == 4: # Department
+            cursor.execute("SELECT * FROM department")
+        elif config == 5: # Classroom
+            cursor.execute("SELECT * FROM classroom")
+        elif config == 6: # Time Slot
+            cursor.execute("SELECT * FROM time_slot")
+        
+        session['adminData'] = cursor.fetchall()
+
+        # Need auxiliary data for dropdowns in modals
+        cursor.execute("SELECT dept_name FROM department")
+        session['allDepts'] = cursor.fetchall()
+        cursor.execute("SELECT building FROM building")
+        session['allBuildings'] = cursor.fetchall()
+
+    if request.method == 'POST':
+        action = request.form.get('action')
+        configuration = int(request.form.get('config'))
+        
+        try:
+            # --- COURSE CRUD ---
+            if configuration == 0:
+                if action == 'add':
+                    cursor.execute("INSERT INTO course (course_id, title, dept_name, credits) VALUES (%s, %s, %s, %s)", 
+                                   (request.form.get('id'), request.form.get('title'), request.form.get('dept'), request.form.get('credits')))
+                elif action == 'delete':
+                    cursor.execute("DELETE FROM course WHERE course_id=%s", (request.form.get('id'),))
+
+            # --- SECTION CRUD (Assign Teachers) ---
+            elif configuration == 1:
+                if action == 'add':
+                    # Simplified for brevity - assumes standard values
+                    cursor.execute("INSERT INTO section (course_id, sec_id, semester, year, teacher) VALUES (%s, %s, %s, %s, %s)",
+                                   (request.form.get('cid'), request.form.get('sid'), request.form.get('sem'), request.form.get('year'), request.form.get('tid')))
+                elif action == 'delete':
+                    cursor.execute("DELETE FROM section WHERE course_id=%s AND sec_id=%s AND semester=%s AND year=%s",
+                                   (request.form.get('cid'), request.form.get('sid'), request.form.get('sem'), request.form.get('year')))
+                elif action == 'updateTeacher': # Assign/Modify Teacher
+                    cursor.execute("UPDATE section SET teacher=%s WHERE course_id=%s AND sec_id=%s AND semester=%s AND year=%s",
+                                   (request.form.get('tid'), request.form.get('cid'), request.form.get('sid'), request.form.get('sem'), request.form.get('year')))
+
+            # --- INSTRUCTOR CRUD ---
+            elif configuration == 2:
+                if action == 'add':
+                    # Must also add to USERS table
+                    uid = request.form.get('id')
+                    cursor.execute("INSERT INTO instructor (ID, name, dept_name, salary) VALUES (%s, %s, %s, %s)",
+                                   (uid, request.form.get('name'), request.form.get('dept'), request.form.get('salary')))
+                    # Default password for new users '1234' - should really be hashed
+                    cursor.execute("INSERT INTO users (userID, username, password, permission_level) VALUES (%s, %s, AES_ENCRYPT(%s, UNHEX(%s)), 1)",
+                                   (uid, request.form.get('name'), '1234', config.SECRET_KEY))
+                elif action == 'delete':
+                    cursor.execute("DELETE FROM instructor WHERE ID=%s", (request.form.get('id'),))
+                    cursor.execute("DELETE FROM users WHERE userID=%s", (request.form.get('id'),))
+
+            # --- STUDENT CRUD ---
+            elif configuration == 3:
+                if action == 'add':
+                    uid = request.form.get('id')
+                    cursor.execute("INSERT INTO student (ID, name, tot_credits) VALUES (%s, %s, 0)", (uid, request.form.get('name')))
+                    cursor.execute("INSERT INTO users (userID, username, password, permission_level) VALUES (%s, %s, AES_ENCRYPT(%s, UNHEX(%s)), 0)",
+                                   (uid, request.form.get('name'), '1234', config.SECRET_KEY))
+                elif action == 'delete':
+                    cursor.execute("DELETE FROM student WHERE ID=%s", (request.form.get('id'),))
+                    cursor.execute("DELETE FROM users WHERE userID=%s", (request.form.get('id'),))
+
+            # --- DEPT CRUD ---
+            elif configuration == 4:
+                if action == 'add':
+                    cursor.execute("INSERT INTO department (dept_name, building, budget) VALUES (%s, %s, %s)", 
+                                   (request.form.get('name'), request.form.get('building'), request.form.get('budget')))
+                elif action == 'delete':
+                    cursor.execute("DELETE FROM department WHERE dept_name=%s", (request.form.get('name'),))
+            
+            # --- PERSONAL INFO UPDATE (Admin self) ---
+            if action == 'updateSelf':
+                cursor.execute("UPDATE users SET username=%s WHERE userID=%s", (request.form.get('username'), session.get('ID')))
+                session['username'] = request.form.get('username') # Update session
+
+            db.commit()
+            flash('Operation Successful', 'success')
+        except Exception as e:
+            flash(f'Error: {e}', 'danger')
+
+    refresh_admin_data(configuration)
+    cursor.close()
+    return render_template('adminDash.html', configuration=configuration, data=session.get('adminData'))
 
 
 

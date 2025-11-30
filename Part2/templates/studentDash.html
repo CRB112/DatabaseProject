@@ -1,48 +1,180 @@
 <!DOCTYPE html>
 <html data-bs-theme="dark">
-    <head>
-        <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
-        <link href="../static/customcss.css" rel="stylesheet">
-    </head>
-    <body>
-        <div class="container mt-5 position-absolute w-25 top-0 start-50 translate-middle-x">
-            <!-- Flash Messages -->
-            <div class="alert-container">
-                {% with messages = get_flashed_messages(with_categories=true) %}
-                    {% if messages %}
-                        <div class="alert-container">
-                            {% for category, message in messages %}
-                                <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
-                                    {{ message }}
-                                    <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+<head>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link href="../static/customcss.css" rel="stylesheet">
+</head>
+<body class="vh-100 d-flex flex-column">
+
+    <nav class="navbar navbar-expand-lg navbar-dark bg-dark border-bottom">
+        <div class="container-fluid">
+            <span class="navbar-brand mb-0 h1">Student Portal | {{ session.get('username') }} (ID: {{ session.get('ID') }})</span>
+            <div class="d-flex">
+                 <a href="{{ url_for('logout') }}" class="btn btn-outline-danger">Logout</a>
+            </div>
+        </div>
+    </nav>
+
+    <div class="container mt-3">
+        {% with messages = get_flashed_messages(with_categories=true) %}
+            {% if messages %}
+                {% for category, message in messages %}
+                    <div class="alert alert-{{ category }} alert-dismissible fade show" role="alert">
+                        {{ message }}
+                        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+                    </div>
+                {% endfor %}
+            {% endif %}
+        {% endwith %}
+    </div>
+
+    <div class="container mt-4 flex-grow-1">
+        <div class="row h-100">
+            <div class="col-md-3">
+                <div class="list-group">
+                    <form method="POST" action="/student" class="w-100">
+                        <input type="hidden" name="action" value="switch">
+                        <input type="hidden" name="config" value="0">
+                        <button type="submit" class="list-group-item list-group-item-action {% if configuration == 0 %}active{% endif %}">
+                            My Classes & Grades
+                        </button>
+                    </form>
+                    <form method="POST" action="/student" class="w-100">
+                        <input type="hidden" name="action" value="switch">
+                        <input type="hidden" name="config" value="1">
+                        <button type="submit" class="list-group-item list-group-item-action {% if configuration == 1 %}active{% endif %}">
+                            Register for Courses
+                        </button>
+                    </form>
+                    <form method="POST" action="/student" class="w-100">
+                        <input type="hidden" name="action" value="switch">
+                        <input type="hidden" name="config" value="2">
+                        <button type="submit" class="list-group-item list-group-item-action {% if configuration == 2 %}active{% endif %}">
+                            Profile & Advisor
+                        </button>
+                    </form>
+                </div>
+            </div>
+
+            <div class="col-md-9">
+                <div class="card h-100">
+                    <div class="card-body overflow-auto">
+                        
+                        {% if configuration == 0 %}
+                            <h3>My Current Schedule & Grades</h3>
+                            <table class="table table-striped table-hover mt-3">
+                                <thead>
+                                    <tr>
+                                        <th>Course</th>
+                                        <th>Time/Loc</th>
+                                        <th>Instructor</th>
+                                        <th>Grade</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for c in session.get('enrolledClasses') %}
+                                    <tr>
+                                        <td><strong>{{ c[0] }}</strong> (Sec {{ c[1] }})<br><small>{{ c[2] }} {{ c[3] }}</small></td>
+                                        <td>{{ c[5] }} {{ c[6] }}:{{ c[7] }}-{{ c[8] }}:{{ c[9] }}<br><small>{{ c[13] }} {{ c[12] }}</small></td>
+                                        <td>{{ c[11] }}</td>
+                                        <td>
+                                            {% if c[4] %}
+                                                <span class="badge bg-success">{{ c[4] }}</span>
+                                            {% else %}
+                                                <span class="badge bg-secondary">In Progress</span>
+                                            {% endif %}
+                                        </td>
+                                        <td>
+                                            <form method="POST" action="/student">
+                                                <input type="hidden" name="config" value="0">
+                                                <input type="hidden" name="action" value="drop">
+                                                <input type="hidden" name="courseID" value="{{ c[0] }}">
+                                                <input type="hidden" name="secID" value="{{ c[1] }}">
+                                                <input type="hidden" name="semester" value="{{ c[2] }}">
+                                                <input type="hidden" name="year" value="{{ c[3] }}">
+                                                <button class="btn btn-sm btn-danger">Drop</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+
+                        {% elif configuration == 1 %}
+                            <h3>Available Courses</h3>
+                            <p class="text-muted">Register for upcoming semesters.</p>
+                            <table class="table table-bordered table-sm">
+                                <thead>
+                                    <tr>
+                                        <th>Course</th>
+                                        <th>Details</th>
+                                        <th>Time</th>
+                                        <th>Action</th>
+                                    </tr>
+                                </thead>
+                                <tbody>
+                                    {% for s in session.get('availableSections') %}
+                                    <tr>
+                                        <td>{{ s[0] }} - {{ s[4] }}</td>
+                                        <td>Sec {{ s[1] }}<br>{{ s[2] }} {{ s[3] }}<br>Prof: {{ s[5] }}</td>
+                                        <td>{{ s[6] }} {{ s[7] }}:{{ s[8] }} - {{ s[9] }}:{{ s[10] }}</td>
+                                        <td>
+                                            <form method="POST" action="/student">
+                                                <input type="hidden" name="config" value="1">
+                                                <input type="hidden" name="action" value="register">
+                                                <input type="hidden" name="courseID" value="{{ s[0] }}">
+                                                <input type="hidden" name="secID" value="{{ s[1] }}">
+                                                <input type="hidden" name="semester" value="{{ s[2] }}">
+                                                <input type="hidden" name="year" value="{{ s[3] }}">
+                                                <button class="btn btn-primary btn-sm">Register</button>
+                                            </form>
+                                        </td>
+                                    </tr>
+                                    {% endfor %}
+                                </tbody>
+                            </table>
+
+                        {% elif configuration == 2 %}
+                            <h3>My Profile</h3>
+                            <div class="mb-4">
+                                <form method="POST" action="/student">
+                                    <input type="hidden" name="config" value="2">
+                                    <input type="hidden" name="action" value="updateProfile">
+                                    <div class="mb-3">
+                                        <label>Name</label>
+                                        <input type="text" name="newName" class="form-control w-50" value="{{ session.get('personalInfo')[0] }}">
+                                    </div>
+                                    <div class="mb-3">
+                                        <label>Total Credits Earned</label>
+                                        <input type="text" class="form-control w-50" value="{{ session.get('personalInfo')[1] }}" disabled>
+                                    </div>
+                                    <button class="btn btn-primary">Update Info</button>
+                                </form>
+                            </div>
+
+                            <hr>
+
+                            <h3>Advisor Information</h3>
+                            {% if session.get('advisorInfo') %}
+                                <div class="card bg-secondary text-white w-50">
+                                    <div class="card-body">
+                                        <h5 class="card-title">{{ session.get('advisorInfo')[0] }}</h5>
+                                        <p class="card-text">Department: {{ session.get('advisorInfo')[1] }}</p>
+                                        <p class="card-text">ID: {{ session.get('advisorInfo')[2] }}</p>
+                                    </div>
                                 </div>
-                            {% endfor %}
-                        </div>
-                    {% endif %}
-                {% endwith %}
+                            {% else %}
+                                <p>No advisor assigned.</p>
+                            {% endif %}
+
+                        {% endif %}
+                    </div>
+                </div>
             </div>
         </div>
+    </div>
 
-        <!--content-->
-        <div class="container text-center vh-100">
-            <div class="row h-50">
-                <div class="col w-50 justify-content-center align-items-center d-flex">
-                    <h2 class="fs-1">Hello {{user}}</h2>
-                </div>
-                <div class="col w-50 d-flex">
-                    content
-                </div>
-            </div>
-            <div class="row h-50">
-                <div class="col w-50 d-flex">
-                    content
-                </div>
-                <div class="col w-50 d-flex">
-                    content
-                </div>
-            </div>
-
-        </div>
-
-        <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
-    </body>
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.8/dist/js/bootstrap.bundle.min.js"></script>
+</body>
+</html>
