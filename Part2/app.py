@@ -124,7 +124,7 @@ def goToDash():
         return redirect(url_for('studentPage'))
 
 # -------------------------------------------------------------------------
-#                            INSTRUCTOR ROUTES
+# For Instructor Dashboard Page
 # -------------------------------------------------------------------------
 
 @app.route('/instructor', methods = ['GET', 'POST'])
@@ -366,7 +366,7 @@ def bestWorst():
 
 
 # -------------------------------------------------------------------------
-#                            STUDENT ROUTES
+# For Student Dashboard Page
 # -------------------------------------------------------------------------
 
 @app.route('/student', methods=['GET', 'POST'])
@@ -472,7 +472,7 @@ def studentPage():
     return render_template('studentDash.html', configuration=configuration)
 
 # -------------------------------------------------------------------------
-#                            ADMIN ROUTES
+# For Admin Dashboard Page
 # -------------------------------------------------------------------------
 
 @app.route('/admin', methods=['GET', 'POST'])
@@ -579,7 +579,7 @@ def adminPage():
     return render_template('adminDash.html', configuration=configuration, data=session.get('adminData'))
 
 # -------------------------------------------------------------------------
-#                            HELPERS
+# Additional Helper Functions
 # -------------------------------------------------------------------------
 
 def getRandomID(table):
