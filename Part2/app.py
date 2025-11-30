@@ -382,9 +382,10 @@ def studentPage():
     # Helper to refresh data
     def refresh_student_data():
         # 1. Get Enrolled Classes
+        # FIXED: Changed s.day, s.start_hr, etc. to ts.day, ts.start_hr, etc.
         sql = """
             SELECT t.course_id, t.sec_id, t.semester, t.year, t.grade, 
-                   s.day, s.start_hr, s.start_min, s.end_hr, s.end_min, c.credits, i.name, s.room_number, s.building, t.submit
+                   ts.day, ts.start_hr, ts.start_min, ts.end_hr, ts.end_min, c.credits, i.name, s.room_number, s.building, t.submit
             FROM takes t
             JOIN section s ON t.course_id = s.course_id AND t.sec_id = s.sec_id AND t.semester = s.semester AND t.year = s.year
             JOIN course c ON t.course_id = c.course_id
