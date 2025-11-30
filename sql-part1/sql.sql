@@ -21,206 +21,6 @@ SET time_zone = "+00:00";
 -- Database: `idbproject`
 --
 
-DELIMITER $$
---
--- Procedures
---
-CREATE DEFINER=`root`@`localhost` PROCEDURE `get_all_semesters_and_years` ()   BEGIN
-    SELECT DISTINCT semester, year
-    FROM section
-    ORDER BY year DESC, 
-             FIELD(semester, 'Spring', 'Summer', 'Fall');
-END$$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `get_avg_grade_by_dept_param` (IN `deptName` VARCHAR(30))   BEGIN
-    SELECT 
-        AVG(
-            CASE 
-                WHEN t.grade = 'A+' THEN 4.3
-                WHEN t.grade = 'A'  THEN 4.0
-                WHEN t.grade = 'A-' THEN 3.7
-
-                WHEN t.grade = 'B+' THEN 3.3
-                WHEN t.grade = 'B'  THEN 3.0
-                WHEN t.grade = 'B-' THEN 2.7
-
-                WHEN t.grade = 'C+' THEN 2.3
-                WHEN t.grade = 'C'  THEN 2.0
-                WHEN t.grade = 'C-' THEN 1.7
-
-                WHEN t.grade = 'D+' THEN 1.3
-                WHEN t.grade = 'D'  THEN 1.0
-                WHEN t.grade = 'D-' THEN 0.7
-
-                WHEN t.grade = 'F'  THEN 0.0
-                ELSE NULL
-            END
-        ) AS avg_gpa
-    FROM department d
-    JOIN course c 
-        ON c.dept_name = d.dept_name
-    JOIN section s 
-        ON s.course_id = c.course_id
-    JOIN takes t 
-        ON t.course_id = s.course_id
-       AND t.sec_id   = s.sec_id
-       AND t.semester = s.semester
-       AND t.year     = s.year
-    WHERE d.dept_name = deptName;
-END$$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `get_avg_grade_for_class_across_semesters` (IN `p_course_id` VARCHAR(10), IN `p_start_semester` VARCHAR(7), IN `p_start_year` INT, IN `p_end_semester` VARCHAR(7), IN `p_end_year` INT)   BEGIN
-    SELECT 
-        AVG(
-            CASE 
-                WHEN t.grade = 'A+' THEN 4.3
-                WHEN t.grade = 'A'  THEN 4.0
-                WHEN t.grade = 'A-' THEN 3.7
-                WHEN t.grade = 'B+' THEN 3.3
-                WHEN t.grade = 'B'  THEN 3.0
-                WHEN t.grade = 'B-' THEN 2.7
-                WHEN t.grade = 'C+' THEN 2.3
-                WHEN t.grade = 'C'  THEN 2.0
-                WHEN t.grade = 'C-' THEN 1.7
-                WHEN t.grade = 'D+' THEN 1.3
-                WHEN t.grade = 'D'  THEN 1.0
-                WHEN t.grade = 'D-' THEN 0.7
-                WHEN t.grade = 'F'  THEN 0.0
-                ELSE NULL
-            END
-        ) AS avg_gpa
-    FROM takes t
-    JOIN section s
-        ON t.course_id = s.course_id
-       AND t.sec_id = s.sec_id
-       AND t.semester = s.semester
-       AND t.year = s.year
-    WHERE s.course_id = CAST(p_course_id AS CHAR CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci)
-      AND (
-            (s.year > p_start_year)
-            OR (s.year = p_start_year AND
-                CASE s.semester
-                    WHEN 'Spring' THEN 1
-                    WHEN 'Summer' THEN 2
-                    WHEN 'Fall'   THEN 3
-                END >=
-                CASE p_start_semester
-                    WHEN 'Spring' THEN 1
-                    WHEN 'Summer' THEN 2
-                    WHEN 'Fall'   THEN 3
-                END
-            )
-          )
-      AND (
-            (s.year < p_end_year)
-            OR (s.year = p_end_year AND
-                CASE s.semester
-                    WHEN 'Spring' THEN 1
-                    WHEN 'Summer' THEN 2
-                    WHEN 'Fall'   THEN 3
-                END <=
-                CASE p_end_semester
-                    WHEN 'Spring' THEN 1
-                    WHEN 'Summer' THEN 2
-                    WHEN 'Fall'   THEN 3
-                END
-            )
-          );
-END$$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `get_best_and_worst_classes` (IN `semester` VARCHAR(7), IN `year` INT)   BEGIN
-    -- Declare variables for best and worst class information
-    DECLARE best_class VARCHAR(10);
-    DECLARE worst_class VARCHAR(10);
-    DECLARE best_avg_grade DECIMAL(3,2);
-    DECLARE worst_avg_grade DECIMAL(3,2);
-    
-    -- Query to find the best performing class in the selected semester
-    SELECT 
-        sec.course_id, 
-        AVG(CASE 
-                WHEN t.grade = 'A+' THEN 4.3
-                WHEN t.grade = 'A' THEN 4.0
-                WHEN t.grade = 'A-' THEN 3.7
-                WHEN t.grade = 'B+' THEN 3.3
-                WHEN t.grade = 'B' THEN 3.0
-                WHEN t.grade = 'B-' THEN 2.7
-                WHEN t.grade = 'C+' THEN 2.3
-                WHEN t.grade = 'C' THEN 2.0
-                WHEN t.grade = 'C-' THEN 1.7
-                WHEN t.grade = 'D+' THEN 1.3
-                WHEN t.grade = 'D' THEN 1.0
-                WHEN t.grade = 'D-' THEN 0.7
-                WHEN t.grade = 'F' THEN 0.0
-            END) AS avg_grade
-    INTO best_class, best_avg_grade
-    FROM takes t
-    JOIN section sec ON t.course_id = sec.course_id AND t.sec_id = sec.sec_id
-    WHERE sec.semester = semester AND sec.year = year
-    GROUP BY sec.course_id
-    ORDER BY avg_grade DESC
-    LIMIT 1;
-
-    -- Query to find the worst performing class in the selected semester
-    SELECT 
-        sec.course_id, 
-        AVG(CASE 
-                WHEN t.grade = 'A+' THEN 4.3
-                WHEN t.grade = 'A' THEN 4.0
-                WHEN t.grade = 'A-' THEN 3.7
-                WHEN t.grade = 'B+' THEN 3.3
-                WHEN t.grade = 'B' THEN 3.0
-                WHEN t.grade = 'B-' THEN 2.7
-                WHEN t.grade = 'C+' THEN 2.3
-                WHEN t.grade = 'C' THEN 2.0
-                WHEN t.grade = 'C-' THEN 1.7
-                WHEN t.grade = 'D+' THEN 1.3
-                WHEN t.grade = 'D' THEN 1.0
-                WHEN t.grade = 'D-' THEN 0.7
-                WHEN t.grade = 'F' THEN 0.0
-            END) AS avg_grade
-    INTO worst_class, worst_avg_grade
-    FROM takes t
-    JOIN section sec ON t.course_id = sec.course_id AND t.sec_id = sec.sec_id
-    WHERE sec.semester = semester AND sec.year = year
-    GROUP BY sec.course_id
-    ORDER BY avg_grade ASC
-    LIMIT 1;
-
-    -- Output the results including the selected semester and year
-    SELECT 
-        semester AS selected_semester,
-        year AS selected_year,
-        best_class AS best_class,
-        best_avg_grade AS best_class_avg_grade,
-        worst_class AS worst_class,
-        worst_avg_grade AS worst_class_avg_grade;
-
-END$$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `get_total_current_students_by_dept` (IN `deptName` VARCHAR(30))   BEGIN
-    SELECT 
-        COUNT(DISTINCT s.ID) AS total_current_students
-    FROM student s
-    JOIN instructor i
-        ON s.advisor_id = i.ID
-    JOIN takes t
-        ON t.ID = s.ID
-    WHERE i.dept_name = deptName
-      AND t.submit = 0;   -- course in progress, meaning student is "current"
-END$$
-
-CREATE DEFINER=`root`@`localhost` PROCEDURE `get_total_students_by_dept` (IN `deptName` VARCHAR(30))   BEGIN
-    SELECT 
-        COUNT(*) AS total_students
-    FROM student s
-    JOIN instructor i
-        ON s.advisor_id = i.ID
-    WHERE i.dept_name = deptName;
-END$$
-
-DELIMITER ;
-
 -- --------------------------------------------------------
 
 --
@@ -849,6 +649,206 @@ ALTER TABLE `takes`
   ADD CONSTRAINT `takescourse_coursecourse` FOREIGN KEY (`course_id`,`sec_id`,`semester`,`year`) REFERENCES `section` (`course_id`, `sec_id`, `semester`, `year`) ON DELETE CASCADE ON UPDATE CASCADE,
   ADD CONSTRAINT `takesid_studentid` FOREIGN KEY (`ID`) REFERENCES `student` (`ID`) ON DELETE CASCADE ON UPDATE CASCADE;
 COMMIT;
+
+DELIMITER $$
+--
+-- Procedures
+--
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_all_semesters_and_years` ()   BEGIN
+    SELECT DISTINCT semester, year
+    FROM section
+    ORDER BY year DESC, 
+             FIELD(semester, 'Spring', 'Summer', 'Fall');
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_avg_grade_by_dept_param` (IN `deptName` VARCHAR(30))   BEGIN
+    SELECT 
+        AVG(
+            CASE 
+                WHEN t.grade = 'A+' THEN 4.3
+                WHEN t.grade = 'A'  THEN 4.0
+                WHEN t.grade = 'A-' THEN 3.7
+
+                WHEN t.grade = 'B+' THEN 3.3
+                WHEN t.grade = 'B'  THEN 3.0
+                WHEN t.grade = 'B-' THEN 2.7
+
+                WHEN t.grade = 'C+' THEN 2.3
+                WHEN t.grade = 'C'  THEN 2.0
+                WHEN t.grade = 'C-' THEN 1.7
+
+                WHEN t.grade = 'D+' THEN 1.3
+                WHEN t.grade = 'D'  THEN 1.0
+                WHEN t.grade = 'D-' THEN 0.7
+
+                WHEN t.grade = 'F'  THEN 0.0
+                ELSE NULL
+            END
+        ) AS avg_gpa
+    FROM department d
+    JOIN course c 
+        ON c.dept_name = d.dept_name
+    JOIN section s 
+        ON s.course_id = c.course_id
+    JOIN takes t 
+        ON t.course_id = s.course_id
+       AND t.sec_id   = s.sec_id
+       AND t.semester = s.semester
+       AND t.year     = s.year
+    WHERE d.dept_name = deptName;
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_avg_grade_for_class_across_semesters` (IN `p_course_id` VARCHAR(10), IN `p_start_semester` VARCHAR(7), IN `p_start_year` INT, IN `p_end_semester` VARCHAR(7), IN `p_end_year` INT)   BEGIN
+    SELECT 
+        AVG(
+            CASE 
+                WHEN t.grade = 'A+' THEN 4.3
+                WHEN t.grade = 'A'  THEN 4.0
+                WHEN t.grade = 'A-' THEN 3.7
+                WHEN t.grade = 'B+' THEN 3.3
+                WHEN t.grade = 'B'  THEN 3.0
+                WHEN t.grade = 'B-' THEN 2.7
+                WHEN t.grade = 'C+' THEN 2.3
+                WHEN t.grade = 'C'  THEN 2.0
+                WHEN t.grade = 'C-' THEN 1.7
+                WHEN t.grade = 'D+' THEN 1.3
+                WHEN t.grade = 'D'  THEN 1.0
+                WHEN t.grade = 'D-' THEN 0.7
+                WHEN t.grade = 'F'  THEN 0.0
+                ELSE NULL
+            END
+        ) AS avg_gpa
+    FROM takes t
+    JOIN section s
+        ON t.course_id = s.course_id
+       AND t.sec_id = s.sec_id
+       AND t.semester = s.semester
+       AND t.year = s.year
+    WHERE s.course_id = CAST(p_course_id AS CHAR CHARACTER SET utf8mb4 COLLATE utf8mb4_general_ci)
+      AND (
+            (s.year > p_start_year)
+            OR (s.year = p_start_year AND
+                CASE s.semester
+                    WHEN 'Spring' THEN 1
+                    WHEN 'Summer' THEN 2
+                    WHEN 'Fall'   THEN 3
+                END >=
+                CASE p_start_semester
+                    WHEN 'Spring' THEN 1
+                    WHEN 'Summer' THEN 2
+                    WHEN 'Fall'   THEN 3
+                END
+            )
+          )
+      AND (
+            (s.year < p_end_year)
+            OR (s.year = p_end_year AND
+                CASE s.semester
+                    WHEN 'Spring' THEN 1
+                    WHEN 'Summer' THEN 2
+                    WHEN 'Fall'   THEN 3
+                END <=
+                CASE p_end_semester
+                    WHEN 'Spring' THEN 1
+                    WHEN 'Summer' THEN 2
+                    WHEN 'Fall'   THEN 3
+                END
+            )
+          );
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_best_and_worst_classes` (IN `semester` VARCHAR(7), IN `year` INT)   BEGIN
+    -- Declare variables for best and worst class information
+    DECLARE best_class VARCHAR(10);
+    DECLARE worst_class VARCHAR(10);
+    DECLARE best_avg_grade DECIMAL(3,2);
+    DECLARE worst_avg_grade DECIMAL(3,2);
+    
+    -- Query to find the best performing class in the selected semester
+    SELECT 
+        sec.course_id, 
+        AVG(CASE 
+                WHEN t.grade = 'A+' THEN 4.3
+                WHEN t.grade = 'A' THEN 4.0
+                WHEN t.grade = 'A-' THEN 3.7
+                WHEN t.grade = 'B+' THEN 3.3
+                WHEN t.grade = 'B' THEN 3.0
+                WHEN t.grade = 'B-' THEN 2.7
+                WHEN t.grade = 'C+' THEN 2.3
+                WHEN t.grade = 'C' THEN 2.0
+                WHEN t.grade = 'C-' THEN 1.7
+                WHEN t.grade = 'D+' THEN 1.3
+                WHEN t.grade = 'D' THEN 1.0
+                WHEN t.grade = 'D-' THEN 0.7
+                WHEN t.grade = 'F' THEN 0.0
+            END) AS avg_grade
+    INTO best_class, best_avg_grade
+    FROM takes t
+    JOIN section sec ON t.course_id = sec.course_id AND t.sec_id = sec.sec_id
+    WHERE sec.semester = semester AND sec.year = year
+    GROUP BY sec.course_id
+    ORDER BY avg_grade DESC
+    LIMIT 1;
+
+    -- Query to find the worst performing class in the selected semester
+    SELECT 
+        sec.course_id, 
+        AVG(CASE 
+                WHEN t.grade = 'A+' THEN 4.3
+                WHEN t.grade = 'A' THEN 4.0
+                WHEN t.grade = 'A-' THEN 3.7
+                WHEN t.grade = 'B+' THEN 3.3
+                WHEN t.grade = 'B' THEN 3.0
+                WHEN t.grade = 'B-' THEN 2.7
+                WHEN t.grade = 'C+' THEN 2.3
+                WHEN t.grade = 'C' THEN 2.0
+                WHEN t.grade = 'C-' THEN 1.7
+                WHEN t.grade = 'D+' THEN 1.3
+                WHEN t.grade = 'D' THEN 1.0
+                WHEN t.grade = 'D-' THEN 0.7
+                WHEN t.grade = 'F' THEN 0.0
+            END) AS avg_grade
+    INTO worst_class, worst_avg_grade
+    FROM takes t
+    JOIN section sec ON t.course_id = sec.course_id AND t.sec_id = sec.sec_id
+    WHERE sec.semester = semester AND sec.year = year
+    GROUP BY sec.course_id
+    ORDER BY avg_grade ASC
+    LIMIT 1;
+
+    -- Output the results including the selected semester and year
+    SELECT 
+        semester AS selected_semester,
+        year AS selected_year,
+        best_class AS best_class,
+        best_avg_grade AS best_class_avg_grade,
+        worst_class AS worst_class,
+        worst_avg_grade AS worst_class_avg_grade;
+
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_total_current_students_by_dept` (IN `deptName` VARCHAR(30))   BEGIN
+    SELECT 
+        COUNT(DISTINCT s.ID) AS total_current_students
+    FROM student s
+    JOIN instructor i
+        ON s.advisor_id = i.ID
+    JOIN takes t
+        ON t.ID = s.ID
+    WHERE i.dept_name = deptName
+      AND t.submit = 0;   -- course in progress, meaning student is "current"
+END$$
+
+CREATE DEFINER=`root`@`localhost` PROCEDURE `get_total_students_by_dept` (IN `deptName` VARCHAR(30))   BEGIN
+    SELECT 
+        COUNT(*) AS total_students
+    FROM student s
+    JOIN instructor i
+        ON s.advisor_id = i.ID
+    WHERE i.dept_name = deptName;
+END$$
+
+DELIMITER ;
 
 /*!40101 SET CHARACTER_SET_CLIENT=@OLD_CHARACTER_SET_CLIENT */;
 /*!40101 SET CHARACTER_SET_RESULTS=@OLD_CHARACTER_SET_RESULTS */;
