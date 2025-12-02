@@ -10,7 +10,7 @@
         <div class="container-fluid">
             <span class="navbar-brand mb-0 h1">Student Portal | {{ session.get('username') }} (ID: {{ session.get('ID') }})</span>
             <div class="d-flex">
-                 <a href="{{ url_for('logout') }}" class="btn btn-outline-danger">Logout</a>
+                 <a href="{{ url_for('logout') }}" class="btn btn-outline-secondary">Logout</a>
             </div>
         </div>
     </nav>
