@@ -279,7 +279,10 @@
                                             <button type="submit" class="d-flex btn btn-warning justify-content-center align-items-center" style="width: 100%">Remove</button>
                                         </form>
                                     </td>
+                                    {% else %}
+                                    <td></td>
                                     {% endif %}
+                                    
                                     <td style="text-align:center; vertical-align: middle;">{{ s[0] }}</td>
                                     <td style="text-align:center; vertical-align: middle;">{{ s[1] }}</td>
                                     <td style="text-align:center; vertical-align: middle;">{{ s[2] }}</td>
