@@ -174,12 +174,8 @@
                                         <input type="text" name="newName" class="form-control w-50" value="{{ session.get('personalInfo')[0] }}" required>
                                     </div>
                                     <div class="mb-3">
-                                        <label>New Password (Optional)</label>
-                                        <input type="password" name="newPass" class="form-control w-50" placeholder="Leave blank to keep current">
-                                    </div>
-                                    <div class="mb-3">
                                         <label>Total Credits Earned</label>
-                                        <input type="text" class="form-control w-50" value="{{ session.get('personalInfo')[1] }}" disabled>
+                                        <input type="text" class="form-control w-50" value="{{ session.get('personalInfo')[1] }}" required>
                                     </div>
                                     <button class="btn btn-primary">Update Info</button>
                                 </form>
