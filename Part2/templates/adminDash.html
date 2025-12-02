@@ -29,7 +29,7 @@
 
     <div class="container mt-3">
         <div class="d-flex gap-2 flex-wrap justify-content-center">
-            {% set navs = [('Courses', 0), ('Sections', 1), ('Instructors', 2), ('Students', 3), ('Departments', 4), ('Classrooms', 5)] %}
+            {% set navs = [('Courses', 0), ('Sections', 1), ('Instructors', 2), ('Students', 3), ('Departments', 4), ('Classrooms', 5), ('Time Slots', 6)] %}
             {% for name, val in navs %}
                 <form method="POST" action="/admin">
                     <input type="hidden" name="action" value="switch">
@@ -57,6 +57,8 @@
                             {% elif configuration == 2 %} <th>ID</th><th>Name</th><th>Salary</th><th>Dept</th>
                             {% elif configuration == 3 %} <th>ID</th><th>Name</th><th>Credits</th><th>Advisor ID</th>
                             {% elif configuration == 4 %} <th>Name</th><th>Building</th><th>Budget</th>
+                            {% elif configuration == 5 %} <th>Room</th><th>Building</th><th>Capacity</th>
+                            {% elif configuration == 6 %} <th>Slot ID</th><th>Day</th><th>Start Hr</th><th>Start Min</th><th>End Hr</th><th>End Min</th>
                             {% endif %}
                             <th>Delete</th>
                         </tr>
@@ -87,14 +89,22 @@
                                 <form method="POST" action="/admin">
                                     <input type="hidden" name="config" value="{{ configuration }}">
                                     <input type="hidden" name="action" value="delete">
+                                    
                                     <input type="hidden" name="id" value="{{ row[0] }}">
+
                                     {% if configuration == 4 %}<input type="hidden" name="name" value="{{ row[0] }}">{% endif %}
+                                    
                                     {% if configuration == 1 %} 
                                         <input type="hidden" name="cid" value="{{ row[0] }}">
                                         <input type="hidden" name="sid" value="{{ row[1] }}">
                                         <input type="hidden" name="sem" value="{{ row[2] }}">
                                         <input type="hidden" name="year" value="{{ row[3] }}">
                                     {% endif %}
+
+                                    {% if configuration == 5 %} 
+                                        <input type="hidden" name="building_val" value="{{ row[1] }}">
+                                    {% endif %}
+
                                     <button class="btn btn-danger btn-sm">X</button>
                                 </form>
                             </td>
@@ -149,6 +159,29 @@
                                 {% for b in session.get('allBuildings') %}<option value="{{b[0]}}">{{b[0]}}</option>{% endfor %}
                             </select>
                             <input type="number" name="budget" class="form-control mb-2" placeholder="Budget">
+
+                        {% elif configuration == 5 %} <input type="number" name="room" class="form-control mb-2" placeholder="Room Number" required>
+                            <select name="building" class="form-select mb-2">
+                                {% for b in session.get('allBuildings') %}<option value="{{b[0]}}">{{b[0]}}</option>{% endfor %}
+                            </select>
+                            <input type="number" name="capacity" class="form-control mb-2" placeholder="Capacity">
+
+                        {% elif configuration == 6 %} <input type="text" name="ts_id" class="form-control mb-2" placeholder="Slot ID (e.g. A, B)" required maxlength="1">
+                            <select name="day" class="form-select mb-2">
+                                <option value="M">Monday</option>
+                                <option value="T">Tuesday</option>
+                                <option value="W">Wednesday</option>
+                                <option value="R">Thursday</option>
+                                <option value="F">Friday</option>
+                            </select>
+                            <div class="input-group mb-2">
+                                <input type="number" name="sh" class="form-control" placeholder="Start Hr" required>
+                                <input type="number" name="sm" class="form-control" placeholder="Start Min" required>
+                            </div>
+                            <div class="input-group mb-2">
+                                <input type="number" name="eh" class="form-control" placeholder="End Hr" required>
+                                <input type="number" name="em" class="form-control" placeholder="End Min" required>
+                            </div>
                         {% endif %}
 
                         <button class="btn btn-primary w-100">Create</button>

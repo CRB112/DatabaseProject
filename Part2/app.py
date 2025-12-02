@@ -380,10 +380,14 @@ def studentPage():
     session.setdefault('studentData', {})
 
     # Helper to refresh data
-    def refresh_student_data():
-        # 1. Get Enrolled Classes
-        # FIXED: Changed s.day, s.start_hr, etc. to ts.day, ts.start_hr, etc.
-        sql = """
+    def refresh_student_data(semester_filter=None):
+        # 0. Get distinct semesters for the Filter Dropdown
+        sql_sems = "SELECT DISTINCT semester, year FROM takes WHERE ID = %s ORDER BY year DESC"
+        cursor.execute(sql_sems, (session.get('ID'),))
+        session['mySemesters'] = cursor.fetchall()
+
+        # 1. Get Enrolled Classes (With optional Filter)
+        base_sql = """
             SELECT t.course_id, t.sec_id, t.semester, t.year, t.grade, 
                    ts.day, ts.start_hr, ts.start_min, ts.end_hr, ts.end_min, c.credits, i.name, s.room_number, s.building, t.submit
             FROM takes t
@@ -393,7 +397,18 @@ def studentPage():
             JOIN time_slot ts ON s.time_slot_id = ts.time_slot_id
             WHERE t.ID = %s
         """
-        cursor.execute(sql, (session.get('ID'),))
+        params = [session.get('ID')]
+        
+        if semester_filter:
+            base_sql += " AND t.semester = %s AND t.year = %s"
+            sem, yr = semester_filter.split(',')
+            params.append(sem)
+            params.append(yr)
+            session['currentFilter'] = f"{sem} {yr}"
+        else:
+            session['currentFilter'] = "All Semesters"
+
+        cursor.execute(base_sql, tuple(params))
         session['enrolledClasses'] = cursor.fetchall()
 
         # 2. Get Available Sections
@@ -421,13 +436,20 @@ def studentPage():
         cursor.execute(sql, (session.get('ID'),))
         session['personalInfo'] = cursor.fetchone()
 
+    # Default filter is None
+    sem_filter = None
+
     if request.method == 'POST':
         action = request.form.get('action')
-        # Only update config if it's passed, otherwise keep current
         if request.form.get('config'):
             configuration = int(request.form.get('config'))
 
-        if action == 'register':
+        if action == 'filter':
+            sem_filter = request.form.get('semester')
+            # Keep on config 0
+            configuration = 0
+
+        elif action == 'register':
             cid = request.form.get('courseID')
             sid = request.form.get('secID')
             sem = request.form.get('semester')
@@ -455,19 +477,28 @@ def studentPage():
 
         elif action == 'updateProfile':
             newName = request.form.get('newName')
+            newPass = request.form.get('newPass')
             try:
+                # Update Name
                 sql = "UPDATE student SET name = %s WHERE ID = %s"
                 cursor.execute(sql, (newName, session.get('ID')))
-                # Update users table for login consistency
-                sql_user = "UPDATE users SET username = %s WHERE userID = %s"
-                cursor.execute(sql_user, (newName, session.get('ID')))
+                
+                # Update Users table (Username + Password)
+                if newPass:
+                    sql_user = "UPDATE users SET username = %s, password = AES_ENCRYPT(%s, UNHEX(%s)) WHERE userID = %s"
+                    cursor.execute(sql_user, (newName, newPass, config.SECRET_KEY, session.get('ID')))
+                    flash('Profile and Password Updated', 'success')
+                else:
+                    sql_user = "UPDATE users SET username = %s WHERE userID = %s"
+                    cursor.execute(sql_user, (newName, session.get('ID')))
+                    flash('Profile Name Updated', 'success')
+                
                 session['username'] = newName
                 db.commit()
-                flash('Profile Updated', 'success')
             except Exception as e:
                  flash(f'Error updating profile: {e}', 'danger')
 
-    refresh_student_data()
+    refresh_student_data(sem_filter)
     cursor.close()
     return render_template('studentDash.html', configuration=configuration)
 
@@ -563,6 +594,24 @@ def adminPage():
                                    (request.form.get('name'), request.form.get('building'), request.form.get('budget')))
                 elif action == 'delete':
                     cursor.execute("DELETE FROM department WHERE dept_name=%s", (request.form.get('name'),))
+
+            # --- CLASSROOM CRUD (Config 5) ---
+            elif configuration == 5:
+                if action == 'add':
+                    cursor.execute("INSERT INTO classroom (room, building, capacity) VALUES (%s, %s, %s)", 
+                                   (request.form.get('room'), request.form.get('building'), request.form.get('capacity')))
+                elif action == 'delete':
+                    # Classroom PK is composite (room + building)
+                    cursor.execute("DELETE FROM classroom WHERE room=%s AND building=%s", 
+                                   (request.form.get('id'), request.form.get('building_val')))
+
+            # --- TIME SLOT CRUD (Config 6) ---
+            elif configuration == 6:
+                if action == 'add':
+                    cursor.execute("INSERT INTO time_slot (time_slot_id, day, start_hr, start_min, end_hr, end_min) VALUES (%s, %s, %s, %s, %s, %s)", 
+                                   (request.form.get('ts_id'), request.form.get('day'), request.form.get('sh'), request.form.get('sm'), request.form.get('eh'), request.form.get('em')))
+                elif action == 'delete':
+                    cursor.execute("DELETE FROM time_slot WHERE time_slot_id=%s", (request.form.get('id'),))
             
             # --- SELF UPDATE ---
             if action == 'updateSelf':
@@ -577,7 +626,6 @@ def adminPage():
     refresh_admin_data(configuration)
     cursor.close()
     return render_template('adminDash.html', configuration=configuration, data=session.get('adminData'))
-
 # -------------------------------------------------------------------------
 # Additional Helper Functions
 # -------------------------------------------------------------------------

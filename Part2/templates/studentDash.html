@@ -61,43 +61,71 @@
                     <div class="card-body overflow-auto">
                         
                         {% if configuration == 0 %}
-                            <h3>My Current Schedule & Grades</h3>
+                            <div class="d-flex justify-content-between align-items-center mb-3">
+                                <h3>My Schedule & Grades</h3>
+                                <form method="POST" action="/student" class="d-flex gap-2">
+                                    <input type="hidden" name="config" value="0">
+                                    <input type="hidden" name="action" value="filter">
+                                    <select name="semester" class="form-select form-select-sm" style="width: auto;">
+                                        <option value="" disabled selected>Filter by Semester</option>
+                                        {% for s in session.get('mySemesters') %}
+                                            <option value="{{s[0]}},{{s[1]}}">{{s[0]}} {{s[1]}}</option>
+                                        {% endfor %}
+                                    </select>
+                                    <button class="btn btn-secondary btn-sm">Go</button>
+                                </form>
+                            </div>
+                            
+                            <p>Showing: <strong>{{ session.get('currentFilter') }}</strong></p>
+
                             <table class="table table-striped table-hover mt-3">
                                 <thead>
                                     <tr>
                                         <th>Course</th>
+                                        <th>Semester</th>
                                         <th>Time/Loc</th>
                                         <th>Instructor</th>
-                                        <th>Grade</th>
+                                        <th>Status/Grade</th>
                                         <th>Action</th>
                                     </tr>
                                 </thead>
                                 <tbody>
-                                    {% for c in session.get('enrolledClasses') %}
-                                    <tr>
-                                        <td><strong>{{ c[0] }}</strong> (Sec {{ c[1] }})<br><small>{{ c[2] }} {{ c[3] }}</small></td>
-                                        <td>{{ c[5] }} {{ c[6] }}:{{ c[7] }}-{{ c[8] }}:{{ c[9] }}<br><small>{{ c[13] }} {{ c[12] }}</small></td>
-                                        <td>{{ c[11] }}</td>
-                                        <td>
-                                            {% if c[4] %}
-                                                <span class="badge bg-success">{{ c[4] }}</span>
-                                            {% else %}
-                                                <span class="badge bg-secondary">In Progress</span>
-                                            {% endif %}
-                                        </td>
-                                        <td>
-                                            <form method="POST" action="/student">
-                                                <input type="hidden" name="config" value="0">
-                                                <input type="hidden" name="action" value="drop">
-                                                <input type="hidden" name="courseID" value="{{ c[0] }}">
-                                                <input type="hidden" name="secID" value="{{ c[1] }}">
-                                                <input type="hidden" name="semester" value="{{ c[2] }}">
-                                                <input type="hidden" name="year" value="{{ c[3] }}">
-                                                <button class="btn btn-sm btn-danger">Drop</button>
-                                            </form>
-                                        </td>
-                                    </tr>
-                                    {% endfor %}
+                                    {% if session.get('enrolledClasses') %}
+                                        {% for c in session.get('enrolledClasses') %}
+                                        <tr>
+                                            <td><strong>{{ c[0] }}</strong> (Sec {{ c[1] }})<br><small>{{ c[10] }} Credits</small></td>
+                                            <td>{{ c[2] }} {{ c[3] }}</td>
+                                            <td>{{ c[5] }} {{ c[6] }}:{{ c[7] }}-{{ c[8] }}:{{ c[9] }}<br><small>{{ c[13] }} {{ c[12] }}</small></td>
+                                            <td>{{ c[11] }}</td>
+                                            <td>
+                                                {% if c[4] and c[4] != '' %}
+                                                    <span class="badge bg-success fs-6">{{ c[4] }}</span>
+                                                {% else %}
+                                                    <span class="badge bg-warning text-dark">In Progress</span>
+                                                {% endif %}
+                                            </td>
+                                            <td>
+                                                {% if not c[4] or c[4] == '' %}
+                                                    <form method="POST" action="/student">
+                                                        <input type="hidden" name="config" value="0">
+                                                        <input type="hidden" name="action" value="drop">
+                                                        <input type="hidden" name="courseID" value="{{ c[0] }}">
+                                                        <input type="hidden" name="secID" value="{{ c[1] }}">
+                                                        <input type="hidden" name="semester" value="{{ c[2] }}">
+                                                        <input type="hidden" name="year" value="{{ c[3] }}">
+                                                        <button class="btn btn-sm btn-danger">Drop</button>
+                                                    </form>
+                                                {% else %}
+                                                    <button class="btn btn-sm btn-secondary" disabled>Finished</button>
+                                                {% endif %}
+                                            </td>
+                                        </tr>
+                                        {% endfor %}
+                                    {% else %}
+                                        <tr>
+                                            <td colspan="6" class="text-center text-muted">No classes found for this selection.</td>
+                                        </tr>
+                                    {% endif %}
                                 </tbody>
                             </table>
 
@@ -143,7 +171,7 @@
                                     <input type="hidden" name="action" value="updateProfile">
                                     <div class="mb-3">
                                         <label>Name</label>
-                                        <input type="text" name="newName" class="form-control w-50" value="{{ session.get('personalInfo')[0] }}">
+                                        <input type="text" name="newName" class="form-control w-50" value="{{ session.get('personalInfo')[0] }}" required>
                                     </div>
                                     <div class="mb-3">
                                         <label>Total Credits Earned</label>
